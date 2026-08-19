@@ -9,24 +9,23 @@ $ ivy <anything>
 ```
 
 Ivy is an open-source tool for running any interactive CLI inside a
-pseudo-terminal. A transport-independent Session now owns that process, keeps
-bounded output history, and can serve multiple output subscribers. The local
-terminal is the first client; network and mobile clients arrive in later
-milestones.
+pseudo-terminal. A transport-independent Session owns that process, keeps
+bounded output history, and can serve the local terminal plus authenticated
+HTTP/WebSocket clients. A mobile browser client arrives in a later milestone.
 
 ## Current status
 
-Milestone 2 adds the in-memory Session layer without changing the CLI. It
-preserves Milestone 1's interactive terminal behavior, raw keyboard input, ANSI
-output, terminal resizing, signals, and child exit codes while adding:
+Milestone 3 adds an opt-in authenticated local transport without changing the
+ordinary `ivy <command>` experience. Setting `IVY_LISTEN` adds:
 
-- concurrency-safe input and lifecycle management;
-- multiple independent output subscribers;
-- 512 KiB of bounded raw-byte output history; and
-- immutable command and directory metadata managed under random session IDs.
+- health and sanitized Session metadata endpoints;
+- raw binary terminal input and output over WebSockets;
+- versioned JSON controls for hello, resize, errors, and process exit;
+- random 256-bit per-Session credentials and authentication throttling; and
+- bounded, coordinated HTTP/WebSocket shutdown.
 
-There is still no HTTP listener, WebSocket transport, phone interface, pairing,
-authentication, or hosted relay.
+There is still no phone interface, QR pairing, TLS termination, E2EE, or hosted
+relay. Networking is disabled unless explicitly enabled.
 
 ## Build
 
@@ -56,6 +55,23 @@ Ivy executes the supplied argument vector directly. It does not invoke a shell,
 parse agent output, or contain Claude-, Codex-, or other agent-specific paths.
 Use `--` to launch a command named `help` or `version`.
 
+### Local transport
+
+Enable the transport on one concrete loopback interface:
+
+```bash
+IVY_LISTEN=127.0.0.1:7654 ./dist/ivy bash
+```
+
+Port `0` requests an available ephemeral port. Ivy rejects wildcard listeners
+such as `0.0.0.0`, `[::]`, and an empty host. A concrete LAN address can be used
+for trusted-LAN development, but the milestone does not provide TLS and must
+not be exposed to the internet.
+
+When enabled, Ivy prints one local connection URL whose `#token=` fragment is
+not sent in HTTP requests. The token authenticates metadata requests and
+WebSocket connections; the Session ID alone never grants access.
+
 ## Development
 
 ```bash
@@ -66,13 +82,14 @@ make build
 
 See [docs/manual-testing.md](docs/manual-testing.md) for the compatibility test
 matrix and current verified results. See [docs/sessions.md](docs/sessions.md) for
-the Session contract and its current limits.
+the Session contract, [docs/protocol.md](docs/protocol.md) for the transport
+protocol, and [SECURITY.md](SECURITY.md) for the security model.
 
 ## Session safety and limits
 
 A Session ID is a random 128-bit base64url routing identifier. It is not a
-credential and must not be treated as authentication. Future network transports
-must authenticate and authorize access separately.
+credential and must not be treated as authentication. Network clients use a
+distinct per-Session token.
 
 Each subscriber has a 64-chunk queue. Ivy disconnects a subscriber that cannot
 keep up instead of allowing it to stall the PTY or other subscribers. Output
@@ -82,7 +99,6 @@ character.
 
 ## Roadmap
 
-- Local HTTP and WebSocket transport
 - Mobile xterm.js client
 - Secure QR pairing and authentication
 - Embedded web assets and single-binary releases
@@ -92,7 +108,7 @@ layers are solid.
 
 ## Platforms
 
-Milestone 2 targets macOS and Linux on amd64 and arm64. Windows is not currently
+Milestone 3 targets macOS and Linux on amd64 and arm64. Windows is not currently
 supported.
 
 ## License
