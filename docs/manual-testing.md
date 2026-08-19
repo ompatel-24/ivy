@@ -1,7 +1,7 @@
 # Manual compatibility testing
 
-Do not mark a command as compatible until every applicable local check has been
-performed. Mobile checks begin in the mobile-client milestone.
+Do not mark a command or browser as compatible until every applicable check has
+been performed.
 
 ## Local checks
 
@@ -19,7 +19,7 @@ performed. Mobile checks begin in the mobile-client milestone.
 
 | Program | Status | Notes |
 | --- | --- | --- |
-| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 3 built binary with local-only and network-enabled paths |
+| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 4 built binary with local and browser-connected paths |
 | `ivy python` | Unavailable | No `python` or `python3` in the current PATH |
 | `ivy vim` | Unavailable | Not installed in the current PATH |
 | `ivy top` | Unavailable | Not installed in the current PATH |
@@ -55,6 +55,8 @@ These behaviors are covered by race-enabled HTTP/WebSocket integration tests:
 - [x] Slow clients are disconnected without stalling healthy clients
 - [x] Child exit is delivered after terminal output
 - [x] Active WebSockets are closed within a bounded server shutdown
+- [x] Known Session page and exact built assets are served with security headers
+- [x] Missing mobile assets fail before the child starts
 
 Manual loopback smoke test:
 
@@ -67,12 +69,34 @@ Copy the printed Session ID and fragment token into a separate shell to query
 the authenticated metadata endpoint. Do not paste real Session tokens into bug
 reports or committed files.
 
-## Future mobile checks
+## Mobile browser checks
 
-Milestone 3 has no browser terminal, so these remain intentionally unverified.
+Run Ivy on a concrete LAN address, manually open the printed URL, and record the
+browser/device below. Never paste the token into this document.
+
+Browser automation against the built binary:
+
+- [x] Mobile-size browser connects to the existing process
+- [x] Browser input and local input reach the same PTY
+- [x] Browser and local terminal receive the same output
+- [x] A 390x844 viewport resize updates `stty size`
+- [x] Same-tab reload reauthenticates and replays bounded history
+- [x] Missing and invalid credentials show terminal-safe errors
+- [x] Child exit disables input and reports the exit code
+
+Physical-device checks:
 
 - [ ] Phone connects to the existing process
 - [ ] Phone disconnect does not stop the child
 - [ ] Phone reconnect resumes the same session
 - [ ] Local and phone input both reach the PTY
 - [ ] Local and phone clients receive the same output
+- [ ] Rotation and software-keyboard resizing update the PTY
+- [ ] Temporary network loss reconnects and replays bounded history
+- [ ] Exit disables phone input and reports the child status
+
+| Browser | Status | Notes |
+| --- | --- | --- |
+| In-app Chromium | Verified | macOS arm64, 2026-08-19; 390x844 responsive viewport against built assets |
+| Current iPhone Safari | Untested | Requires a physical iPhone on the same trusted LAN |
+| Current Android Chrome | Untested | Requires a physical Android device on the same trusted LAN |

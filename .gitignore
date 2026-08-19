@@ -1,3 +1,5 @@
 /dist/
+/web/dist/
+/web/node_modules/
 /coverage.out
 .DS_Store

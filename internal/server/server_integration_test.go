@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/coder/websocket"
@@ -59,7 +60,7 @@ func TestServerHelperProcess(t *testing.T) {
 		payload := strings.Repeat("x", 16*1024)
 		for index := 0; index < 256; index++ {
 			fmt.Fprintf(os.Stdout, "%03d:%s\n", index, payload)
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 		fmt.Fprintln(os.Stdout, "BURST-DONE")
 
@@ -128,6 +129,65 @@ func TestHTTPRoutesAndAuthentication(t *testing.T) {
 	if response.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("POST /health status = %d, want 405", response.StatusCode)
 	}
+}
+
+func TestWebClientRoutesAndSecurityHeaders(t *testing.T) {
+	transport := startTestTransport(t, "stream", session.ManagerOptions{})
+
+	response := httpRequest(t, http.MethodGet, transport.baseURL+"/s/"+transport.id, "")
+	body := readBody(t, response)
+	if response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Ivy test client")) {
+		t.Fatalf("session page = (%d, %q)", response.StatusCode, body)
+	}
+	for _, header := range []string{"Content-Security-Policy", "Referrer-Policy", "X-Content-Type-Options", "X-Frame-Options"} {
+		if response.Header.Get(header) == "" {
+			t.Fatalf("session page missing %s", header)
+		}
+	}
+	if response.Header.Get("Access-Control-Allow-Origin") != "" {
+		t.Fatal("session page unexpectedly enabled CORS")
+	}
+
+	response = httpRequest(t, http.MethodGet, transport.baseURL+"/assets/app.js", "")
+	asset := readBody(t, response)
+	if response.StatusCode != http.StatusOK || !bytes.Equal(asset, []byte("console.log('ivy')")) {
+		t.Fatalf("web asset = (%d, %q)", response.StatusCode, asset)
+	}
+	if contentType := response.Header.Get("Content-Type"); !strings.Contains(contentType, "javascript") {
+		t.Fatalf("asset Content-Type = %q", contentType)
+	}
+
+	response = httpRequest(t, http.MethodGet, transport.baseURL+"/s/AAAAAAAAAAAAAAAAAAAAAA", "")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown Session page status = %d", response.StatusCode)
+	}
+	if body := readBody(t, response); !bytes.Contains(body, []byte("Ivy test client")) {
+		t.Fatalf("unknown Session page did not render the safe client shell: %q", body)
+	}
+
+	response = httpRequest(t, http.MethodGet, transport.baseURL+"/assets/missing.js", "")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("missing asset status = %d", response.StatusCode)
+	}
+	if response.Header.Get("Content-Security-Policy") == "" || response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatal("missing asset response omitted web security headers")
+	}
+	_ = readBody(t, response)
+
+	response = httpRequest(t, http.MethodGet, transport.baseURL+"/assets/%2e%2e/index.html", "")
+	if response.StatusCode == http.StatusOK {
+		t.Fatal("asset traversal unexpectedly succeeded")
+	}
+	_ = readBody(t, response)
+
+	response = httpRequest(t, http.MethodPost, transport.baseURL+"/s/"+transport.id, "")
+	if response.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("POST Session page status = %d, want 405", response.StatusCode)
+	}
+	if response.Header.Get("Content-Security-Policy") == "" || response.Header.Get("X-Frame-Options") != "DENY" {
+		t.Fatal("method error response omitted web security headers")
+	}
+	_ = readBody(t, response)
 }
 
 func TestHTTPAuthenticationRateLimit(t *testing.T) {
@@ -400,7 +460,7 @@ func startTestTransportWithHook(t *testing.T, mode string, options session.Manag
 	if err != nil {
 		t.Fatalf("Listen(): %v", err)
 	}
-	transport := New(manager, managed.Metadata().ID, credentialForToken(testToken))
+	transport := New(manager, managed.Metadata().ID, credentialForToken(testToken), testWebAssets())
 	if beforeServe != nil {
 		beforeServe(transport)
 	}
@@ -432,6 +492,13 @@ func startTestTransportWithHook(t *testing.T, mode string, options session.Manag
 		}
 	})
 	return result
+}
+
+func testWebAssets() fstest.MapFS {
+	return fstest.MapFS{
+		"index.html":    &fstest.MapFile{Data: []byte(`<!doctype html><title>Ivy test client</title><script src="/assets/app.js"></script>`)},
+		"assets/app.js": &fstest.MapFile{Data: []byte("console.log('ivy')")},
+	}
 }
 
 func (t *testTransport) metadataURL() string {

@@ -42,7 +42,7 @@ func TestListenAndConnectionURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("url.Parse(%q): %v", connectionURL, err)
 	}
-	if parsed.Scheme != "http" || parsed.Path != "/api/v1/sessions/session-id" || parsed.Fragment != "token=secret-token" {
+	if parsed.Scheme != "http" || parsed.Path != "/s/session-id" || parsed.Fragment != "token=secret-token" {
 		t.Fatalf("ConnectionURL() = %q", connectionURL)
 	}
 	if parsed.Hostname() != "127.0.0.1" || parsed.Port() == "" || parsed.Port() == "0" {

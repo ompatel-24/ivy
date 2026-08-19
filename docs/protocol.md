@@ -1,15 +1,16 @@
 # Ivy transport protocol v1
 
-Milestone 3 exposes an authenticated HTTP/WebSocket transport when
+Ivy exposes an authenticated HTTP/WebSocket transport when
 `IVY_LISTEN=<host:port>` is set. The protocol is agent-agnostic: terminal bytes
-are never parsed for Claude, Codex, or any other program.
+are never parsed for Claude, Codex, or any other program. Milestone 4 adds a
+same-origin browser implementation without changing protocol version 1.
 
 ## Discovery and authentication
 
 Ivy prints one URL to the controlling terminal before entering raw mode:
 
 ```text
-http://127.0.0.1:7654/api/v1/sessions/<id>#token=<token>
+http://127.0.0.1:7654/s/<id>#token=<token>
 ```
 
 The Session ID is routing metadata, not authentication. The token is a random
@@ -17,6 +18,8 @@ The Session ID is routing metadata, not authentication. The token is a random
 
 Routes:
 
+- `GET /s/{id}` serves the unauthenticated static client shell for a known Session.
+- `GET /assets/*` serves exact built client assets without directory listings.
 - `GET /health` is unauthenticated and returns only `{"status":"ok"}`.
 - `GET /api/v1/sessions/{id}` requires `Authorization: Bearer <token>`.
 - `GET /api/v1/sessions/{id}/ws` is the WebSocket endpoint.
@@ -71,4 +74,19 @@ normally:
 A subscriber that exhausts its bounded Session queue receives the stable error
 code `slow_consumer` and is disconnected without affecting the child or other
 clients. Disconnecting and reconnecting creates a new subscription and replays
-the current bounded history before live output.
+the current bounded history before live output. The browser resets its xterm
+state before a replay so history is not duplicated on screen.
+
+## Browser credential and reconnect lifecycle
+
+The client reads the token from the fragment, stores it only in
+`sessionStorage` under the Session ID, and removes the fragment from the address
+bar. Reloading the same tab can reconnect; closing the tab removes the browser's
+session storage. Ivy clears the stored token after child exit, authentication
+failure, or an unknown Session. It never uses cookies or local storage.
+
+Before opening a WebSocket, the client authenticates to the metadata endpoint.
+Unexpected network failures retry after 250 ms, 500 ms, one second, two seconds,
+and then every five seconds. Retries pause while the page is hidden or the
+browser is offline and resume when it becomes visible and online. Input is
+disabled unless the WebSocket has completed its `hello` exchange.

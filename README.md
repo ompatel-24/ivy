@@ -10,29 +10,29 @@ $ ivy <anything>
 
 Ivy is an open-source tool for running any interactive CLI inside a
 pseudo-terminal. A transport-independent Session owns that process, keeps
-bounded output history, and can serve the local terminal plus authenticated
-HTTP/WebSocket clients. A mobile browser client arrives in a later milestone.
+bounded output history, and serves the local terminal plus an authenticated
+mobile browser terminal over the local network.
 
 ## Current status
 
-Milestone 3 adds an opt-in authenticated local transport without changing the
-ordinary `ivy <command>` experience. Setting `IVY_LISTEN` adds:
+Milestone 4 adds a minimal mobile-first xterm.js client over Milestone 3's
+opt-in authenticated local transport. Setting `IVY_LISTEN` now adds:
 
-- health and sanitized Session metadata endpoints;
-- raw binary terminal input and output over WebSockets;
-- versioned JSON controls for hello, resize, errors, and process exit;
-- random 256-bit per-Session credentials and authentication throttling; and
-- bounded, coordinated HTTP/WebSocket shutdown.
+- a same-origin browser terminal for the active Session;
+- raw binary terminal input/output and responsive PTY resizing;
+- bounded-history replay and automatic reconnection after network loss; and
+- per-tab token handoff without cookies, query strings, or persistent storage.
 
-There is still no phone interface, QR pairing, TLS termination, E2EE, or hosted
-relay. Networking is disabled unless explicitly enabled.
+There is still no QR pairing, mobile helper-key row, TLS termination, E2EE, or
+hosted relay. Networking is disabled unless explicitly enabled.
 
 ## Build
 
-Ivy currently requires Go 1.23 or newer to build.
+Ivy currently requires Go 1.23 or newer plus a Vite-compatible Node.js/npm
+toolchain to build. Node.js is not needed when running the built artifacts.
 
 ```bash
-make build
+make build          # produces dist/ivy and dist/web
 ./dist/ivy bash
 ```
 
@@ -55,7 +55,7 @@ Ivy executes the supplied argument vector directly. It does not invoke a shell,
 parse agent output, or contain Claude-, Codex-, or other agent-specific paths.
 Use `--` to launch a command named `help` or `version`.
 
-### Local transport
+### Mobile terminal
 
 Enable the transport on one concrete loopback interface:
 
@@ -68,9 +68,15 @@ such as `0.0.0.0`, `[::]`, and an empty host. A concrete LAN address can be used
 for trusted-LAN development, but the milestone does not provide TLS and must
 not be exposed to the internet.
 
-When enabled, Ivy prints one local connection URL whose `#token=` fragment is
-not sent in HTTP requests. The token authenticates metadata requests and
-WebSocket connections; the Session ID alone never grants access.
+When enabled, Ivy prints a URL such as
+`http://127.0.0.1:7654/s/<id>#token=<token>`. Open it in a current browser, or
+bind Ivy to your Mac's concrete LAN address and open the printed URL on a phone
+using the same trusted Wi-Fi. The token fragment is not sent in HTTP requests;
+the browser moves it into per-tab session storage and removes it from the
+address bar.
+
+The built binary finds mobile assets in `dist/web` beside it. Source-tree
+development can override the location with `IVY_WEB_DIR=web/dist`.
 
 ## Development
 
@@ -78,12 +84,14 @@ WebSocket connections; the Session ID alone never grants access.
 make lint
 make test
 make build
+make dev ARGS=bash IVY_LISTEN=127.0.0.1:7654
 ```
 
 See [docs/manual-testing.md](docs/manual-testing.md) for the compatibility test
 matrix and current verified results. See [docs/sessions.md](docs/sessions.md) for
 the Session contract, [docs/protocol.md](docs/protocol.md) for the transport
-protocol, and [SECURITY.md](SECURITY.md) for the security model.
+protocol, [docs/mobile-client.md](docs/mobile-client.md) for the browser
+lifecycle, and [SECURITY.md](SECURITY.md) for the security model.
 
 ## Session safety and limits
 
@@ -99,8 +107,7 @@ character.
 
 ## Roadmap
 
-- Mobile xterm.js client
-- Secure QR pairing and authentication
+- Secure QR pairing and mobile helper controls
 - Embedded web assets and single-binary releases
 
 Hosted relay work is intentionally deferred until the local PTY and session
@@ -108,8 +115,8 @@ layers are solid.
 
 ## Platforms
 
-Milestone 3 targets macOS and Linux on amd64 and arm64. Windows is not currently
-supported.
+Milestone 4 targets macOS and Linux on amd64 and arm64. The browser client
+targets current stable Safari and Chrome. Windows is not currently supported.
 
 ## License
 

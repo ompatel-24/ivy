@@ -33,6 +33,7 @@ Examples:
 Environment:
   IVY_LISTEN=<host:port>  Enable the authenticated local transport on one
                           concrete loopback or LAN interface.
+  IVY_WEB_DIR=<path>      Override the mobile client asset directory.
 `
 
 func main() {
@@ -57,6 +58,7 @@ func runCLI(ctx context.Context, args []string, stdin *os.File, stdout, stderr i
 	case command.ActionRun:
 		runner := app.Runner{
 			ListenAddress: os.Getenv("IVY_LISTEN"),
+			WebRoot:       os.Getenv("IVY_WEB_DIR"),
 			Terminal: terminal.Runner{
 				Stdin:  stdin,
 				Stdout: stdout,
