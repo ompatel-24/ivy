@@ -2,9 +2,21 @@
 
 package terminal
 
-import "context"
+import (
+	"context"
+
+	"github.com/ompatel-24/ivy/internal/session"
+)
 
 // Run reports the intentionally narrow platform scope of Ivy V0.
 func (r Runner) Run(_ context.Context, _ []string) (Result, error) {
+	return Result{}, &RunError{Code: 1, Message: "this Ivy milestone supports only macOS and Linux"}
+}
+
+func (r Runner) InitialSize() (session.StartOptions, error) {
+	return session.StartOptions{}, &RunError{Code: 1, Message: "this Ivy milestone supports only macOS and Linux"}
+}
+
+func (r Runner) Attach(_ context.Context, _ *session.Session) (Result, error) {
 	return Result{}, &RunError{Code: 1, Message: "this Ivy milestone supports only macOS and Linux"}
 }

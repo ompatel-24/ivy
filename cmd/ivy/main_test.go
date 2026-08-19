@@ -56,6 +56,7 @@ func TestRunCLIVersion(t *testing.T) {
 }
 
 func TestRunCLICommandNotFound(t *testing.T) {
+	t.Setenv("IVY_LISTEN", "")
 	stdin := openDevNull(t)
 	var stdout, stderr bytes.Buffer
 
@@ -65,6 +66,23 @@ func TestRunCLICommandNotFound(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "ivy: command not found: ivy-test-command-that-does-not-exist") {
 		t.Fatalf("stderr = %q, want clean not-found error", stderr.String())
+	}
+}
+
+func TestRunCLIRejectsUnsafeListenAddressBeforeLaunchingCommand(t *testing.T) {
+	t.Setenv("IVY_LISTEN", "0.0.0.0:7654")
+	stdin := openDevNull(t)
+	var stdout, stderr bytes.Buffer
+
+	code := runCLI(context.Background(), []string{"ivy-command-that-must-not-launch"}, stdin, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("runCLI() code = %d, want 1; stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "wildcard hosts are not allowed") {
+		t.Fatalf("stderr = %q, want safe listen-address error", stderr.String())
+	}
+	if strings.Contains(stderr.String(), "command not found") {
+		t.Fatalf("command launch was attempted before listen validation: %q", stderr.String())
 	}
 }
 

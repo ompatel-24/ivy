@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ompatel-24/ivy/internal/app"
 	"github.com/ompatel-24/ivy/internal/command"
 	"github.com/ompatel-24/ivy/internal/terminal"
 	"github.com/ompatel-24/ivy/internal/version"
@@ -28,6 +29,10 @@ Examples:
   ivy claude
   ivy aider --model sonnet
   ivy -- command --with-flags
+
+Environment:
+  IVY_LISTEN=<host:port>  Enable the authenticated local transport on one
+                          concrete loopback or LAN interface.
 `
 
 func main() {
@@ -50,11 +55,14 @@ func runCLI(ctx context.Context, args []string, stdin *os.File, stdout, stderr i
 		fmt.Fprintf(stdout, "ivy %s\n", version.Value)
 		return 0
 	case command.ActionRun:
-		runner := terminal.Runner{
-			Stdin:  stdin,
-			Stdout: stdout,
-			Stderr: stderr,
-			Debug:  debugEnabled(os.Getenv("IVY_DEBUG")),
+		runner := app.Runner{
+			ListenAddress: os.Getenv("IVY_LISTEN"),
+			Terminal: terminal.Runner{
+				Stdin:  stdin,
+				Stdout: stdout,
+				Stderr: stderr,
+				Debug:  debugEnabled(os.Getenv("IVY_DEBUG")),
+			},
 		}
 		result, runErr := runner.Run(ctx, invocation.Args)
 		if runErr != nil {

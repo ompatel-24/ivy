@@ -17,11 +17,60 @@ import (
 	"golang.org/x/term"
 )
 
-// Run connects the local terminal as the first input source and output
-// subscriber of a transport-independent Session.
+// Run starts a Session and attaches the local terminal to it. Application
+// orchestration can instead call InitialSize and Attach around an externally
+// managed Session.
 func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnErr error) {
 	if len(argv) == 0 {
 		return Result{}, &RunError{Code: 2, Message: "missing command"}
+	}
+	startOptions, err := r.InitialSize()
+	if err != nil {
+		return Result{}, err
+	}
+
+	manager, err := session.NewManager(session.ManagerOptions{GracePeriod: r.GracePeriod})
+	if err != nil {
+		return Result{}, &RunError{Code: 1, Message: fmt.Sprintf("failed to create session manager: %v", err), Err: err}
+	}
+	defer func() {
+		closeContext, cancel := context.WithTimeout(context.Background(), managerCloseTimeout(r.GracePeriod))
+		defer cancel()
+		if closeErr := manager.Close(closeContext); closeErr != nil && returnErr == nil {
+			returnErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to close session manager: %v", closeErr), Err: closeErr}
+		}
+	}()
+
+	managed, err := manager.Start(ctx, argv, startOptions)
+	if err != nil {
+		return Result{}, err
+	}
+	return r.Attach(ctx, managed)
+}
+
+// InitialSize returns the local terminal dimensions or the 80x24 fallback used
+// for non-terminal input.
+func (r Runner) InitialSize() (session.StartOptions, error) {
+	if r.Stdin == nil {
+		return session.StartOptions{}, &RunError{Code: 1, Message: "standard input is unavailable"}
+	}
+
+	stdinIsTerminal := term.IsTerminal(int(r.Stdin.Fd()))
+	rows, cols := uint16(defaultRows), uint16(defaultCols)
+	if stdinIsTerminal {
+		if size, err := pty.GetsizeFull(r.Stdin); err == nil {
+			rows, cols = size.Rows, size.Cols
+		} else {
+			r.debugf("could not read local terminal size; using %dx%d: %v", defaultCols, defaultRows, err)
+		}
+	}
+	return session.StartOptions{Rows: rows, Cols: cols}, nil
+}
+
+// Attach connects the local terminal to an existing Session.
+func (r Runner) Attach(ctx context.Context, managed *session.Session) (result Result, returnErr error) {
+	if managed == nil {
+		return Result{}, &RunError{Code: 1, Message: "session is unavailable"}
 	}
 	if r.Stdin == nil {
 		return Result{}, &RunError{Code: 1, Message: "standard input is unavailable"}
@@ -34,14 +83,6 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 	}
 
 	stdinIsTerminal := term.IsTerminal(int(r.Stdin.Fd()))
-	rows, cols := uint16(defaultRows), uint16(defaultCols)
-	if stdinIsTerminal {
-		if size, err := pty.GetsizeFull(r.Stdin); err == nil {
-			rows, cols = size.Rows, size.Cols
-		} else {
-			r.debugf("could not read local terminal size; using %dx%d: %v", defaultCols, defaultRows, err)
-		}
-	}
 
 	var oldState *term.State
 	if stdinIsTerminal {
@@ -61,22 +102,6 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 		}()
 	}
 
-	manager, err := session.NewManager(session.ManagerOptions{GracePeriod: r.GracePeriod})
-	if err != nil {
-		return Result{}, &RunError{Code: 1, Message: fmt.Sprintf("failed to create session manager: %v", err), Err: err}
-	}
-	defer func() {
-		closeContext, cancel := context.WithTimeout(context.Background(), managerCloseTimeout(r.GracePeriod))
-		defer cancel()
-		if closeErr := manager.Close(closeContext); closeErr != nil && returnErr == nil {
-			returnErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to close session manager: %v", closeErr), Err: closeErr}
-		}
-	}()
-
-	managed, err := manager.Start(ctx, argv, session.StartOptions{Rows: rows, Cols: cols})
-	if err != nil {
-		return Result{}, err
-	}
 	subscription := managed.Subscribe()
 	defer subscription.Close()
 
