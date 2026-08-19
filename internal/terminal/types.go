@@ -2,11 +2,12 @@
 package terminal
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
+
+	"github.com/ompatel-24/ivy/internal/session"
 )
 
 const (
@@ -15,9 +16,7 @@ const (
 )
 
 // Result describes how the child process exited.
-type Result struct {
-	ExitCode int
-}
+type Result = session.Result
 
 // Runner connects a child PTY to local streams. Signals is optional and exists
 // primarily to make signal behavior deterministic in integration tests.
@@ -33,40 +32,11 @@ type Runner struct {
 
 // RunError is an Ivy failure carrying the shell-compatible exit code that the
 // CLI should return.
-type RunError struct {
-	Code    int
-	Message string
-	Err     error
-}
-
-func (e *RunError) Error() string {
-	if e.Message != "" {
-		return e.Message
-	}
-	if e.Err != nil {
-		return e.Err.Error()
-	}
-	return "terminal error"
-}
-
-func (e *RunError) Unwrap() error {
-	return e.Err
-}
+type RunError = session.RunError
 
 // ErrorCode extracts a CLI exit code from an Ivy runtime error.
 func ErrorCode(err error) int {
-	var runErr *RunError
-	if errors.As(err, &runErr) && runErr.Code > 0 {
-		return runErr.Code
-	}
-	return 1
-}
-
-func (r Runner) gracePeriod() time.Duration {
-	if r.GracePeriod > 0 {
-		return r.GracePeriod
-	}
-	return 2 * time.Second
+	return session.ErrorCode(err)
 }
 
 func (r Runner) debugf(format string, args ...any) {

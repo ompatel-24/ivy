@@ -9,16 +9,24 @@ $ ivy <anything>
 ```
 
 Ivy is an open-source tool for running any interactive CLI inside a
-pseudo-terminal. The PTY is the product's foundation: it lets Ivy preserve the
-same process while local and, in later milestones, mobile clients interact with
-it.
+pseudo-terminal. A transport-independent Session now owns that process, keeps
+bounded output history, and can serve multiple output subscribers. The local
+terminal is the first client; network and mobile clients arrive in later
+milestones.
 
 ## Current status
 
-Milestone 1 is a local, agent-agnostic PTY wrapper. It preserves interactive
-terminal behavior, raw keyboard input, ANSI output, terminal resizing, signals,
-and child exit codes. Mobile access, sessions, WebSockets, pairing, and relays
-are not implemented yet.
+Milestone 2 adds the in-memory Session layer without changing the CLI. It
+preserves Milestone 1's interactive terminal behavior, raw keyboard input, ANSI
+output, terminal resizing, signals, and child exit codes while adding:
+
+- concurrency-safe input and lifecycle management;
+- multiple independent output subscribers;
+- 512 KiB of bounded raw-byte output history; and
+- immutable command and directory metadata managed under random session IDs.
+
+There is still no HTTP listener, WebSocket transport, phone interface, pairing,
+authentication, or hosted relay.
 
 ## Build
 
@@ -57,11 +65,23 @@ make build
 ```
 
 See [docs/manual-testing.md](docs/manual-testing.md) for the compatibility test
-matrix and current verified results.
+matrix and current verified results. See [docs/sessions.md](docs/sessions.md) for
+the Session contract and its current limits.
+
+## Session safety and limits
+
+A Session ID is a random 128-bit base64url routing identifier. It is not a
+credential and must not be treated as authentication. Future network transports
+must authenticate and authorize access separately.
+
+Each subscriber has a 64-chunk queue. Ivy disconnects a subscriber that cannot
+keep up instead of allowing it to stall the PTY or other subscribers. Output
+history stores the newest 512 KiB exactly as received; because it is bounded raw
+data, a snapshot may begin in the middle of an ANSI escape sequence or UTF-8
+character.
 
 ## Roadmap
 
-- Session abstraction, output subscribers, and bounded history
 - Local HTTP and WebSocket transport
 - Mobile xterm.js client
 - Secure QR pairing and authentication
@@ -72,7 +92,7 @@ layers are solid.
 
 ## Platforms
 
-Milestone 1 targets macOS and Linux on amd64 and arm64. Windows is not currently
+Milestone 2 targets macOS and Linux on amd64 and arm64. Windows is not currently
 supported.
 
 ## License

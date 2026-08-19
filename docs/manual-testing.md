@@ -19,12 +19,24 @@ performed. Mobile checks begin in the mobile-client milestone.
 
 | Program | Status | Notes |
 | --- | --- | --- |
-| `ivy bash` | Verified | macOS arm64, 2026-08-18; `go run ./cmd/ivy bash` and built binary |
+| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 2 built binary |
 | `ivy python` | Unavailable | No `python` or `python3` in the current PATH |
 | `ivy vim` | Unavailable | Not installed in the current PATH |
 | `ivy top` | Unavailable | Not installed in the current PATH |
 | `ivy claude` | Unavailable | Not installed in the current PATH |
-| `ivy codex` | Unavailable | Not installed in the current PATH |
+| `ivy codex` | Verified | macOS arm64, 2026-08-19; full-screen UI launched through the built binary |
+
+## Session checks
+
+These behaviors are covered by race-enabled automated integration tests because
+Milestone 2 does not yet expose a network or subscriber CLI:
+
+- [x] Two subscribers receive identical live output
+- [x] A late subscriber receives history followed by gap-free live output
+- [x] Subscriber disconnect does not terminate the child
+- [x] A slow subscriber is disconnected without stalling a healthy subscriber
+- [x] Concurrent writes reach the PTY as complete, non-interleaved writes
+- [x] Manager shutdown closes all registered sessions
 
 ## Future mobile checks
 
