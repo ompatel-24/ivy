@@ -262,18 +262,14 @@ func TestRunnerRestoresTerminalAfterStartFailure(t *testing.T) {
 
 func TestCopyTerminalSize(t *testing.T) {
 	sourcePTY, sourceTTY := openPTYPair(t)
-	targetPTY, _ := openPTYPair(t)
 	setPTYSize(t, sourcePTY, 111, 37)
+	target := &recordingResizer{}
 
-	if err := copyTerminalSize(sourceTTY, targetPTY); err != nil {
-		t.Fatalf("copyTerminalSize(): %v", err)
+	if err := inheritTerminalSize(sourceTTY, target); err != nil {
+		t.Fatalf("inheritTerminalSize(): %v", err)
 	}
-	size, err := pty.GetsizeFull(targetPTY)
-	if err != nil {
-		t.Fatalf("pty.GetsizeFull(target): %v", err)
-	}
-	if size.Cols != 111 || size.Rows != 37 {
-		t.Fatalf("target size = %dx%d, want 111x37", size.Cols, size.Rows)
+	if target.cols != 111 || target.rows != 37 {
+		t.Fatalf("target size = %dx%d, want 111x37", target.cols, target.rows)
 	}
 }
 
@@ -363,16 +359,6 @@ func TestRunnerEscalatesIgnoredTermination(t *testing.T) {
 	}
 	if outcome.result.ExitCode != 128+int(syscall.SIGKILL) {
 		t.Fatalf("Runner.Run() exit code = %d, want %d", outcome.result.ExitCode, 128+int(syscall.SIGKILL))
-	}
-}
-
-func TestResolveExecutableErrors(t *testing.T) {
-	_, err := resolveExecutable("ivy-test-command-that-does-not-exist")
-	if err == nil {
-		t.Fatal("resolveExecutable() error = nil")
-	}
-	if code := ErrorCode(err); code != 127 {
-		t.Fatalf("ErrorCode() = %d, want 127", code)
 	}
 }
 
@@ -467,6 +453,17 @@ func waitForOutput(t *testing.T, output *lockedBuffer, substring string) {
 type runOutcome struct {
 	result Result
 	err    error
+}
+
+type recordingResizer struct {
+	cols uint16
+	rows uint16
+}
+
+func (r *recordingResizer) Resize(cols, rows uint16) error {
+	r.cols = cols
+	r.rows = rows
+	return nil
 }
 
 func waitForRun(t *testing.T, done <-chan runOutcome) runOutcome {

@@ -7,29 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"os/exec"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
-	"unicode"
 
 	"github.com/creack/pty"
+	"github.com/ompatel-24/ivy/internal/session"
 	"golang.org/x/term"
 )
 
-const outputDrainTimeout = 500 * time.Millisecond
-
-type copyResult struct {
-	err error
-}
-
-// Run launches argv in a new PTY and connects it to the configured local
-// streams. It returns child exit statuses as results and reserves errors for
-// failures in Ivy itself.
+// Run connects the local terminal as the first input source and output
+// subscriber of a transport-independent Session.
 func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnErr error) {
 	if len(argv) == 0 {
 		return Result{}, &RunError{Code: 2, Message: "missing command"}
@@ -44,23 +33,19 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 		r.Stderr = io.Discard
 	}
 
-	path, err := resolveExecutable(argv[0])
-	if err != nil {
-		return Result{}, err
-	}
-
 	stdinIsTerminal := term.IsTerminal(int(r.Stdin.Fd()))
-	windowSize := &pty.Winsize{Rows: defaultRows, Cols: defaultCols}
+	rows, cols := uint16(defaultRows), uint16(defaultCols)
 	if stdinIsTerminal {
-		if size, sizeErr := pty.GetsizeFull(r.Stdin); sizeErr == nil {
-			windowSize = size
+		if size, err := pty.GetsizeFull(r.Stdin); err == nil {
+			rows, cols = size.Rows, size.Cols
 		} else {
-			r.debugf("could not read local terminal size; using %dx%d: %v", defaultCols, defaultRows, sizeErr)
+			r.debugf("could not read local terminal size; using %dx%d: %v", defaultCols, defaultRows, err)
 		}
 	}
 
 	var oldState *term.State
 	if stdinIsTerminal {
+		var err error
 		oldState, err = term.MakeRaw(int(r.Stdin.Fd()))
 		if err != nil {
 			return Result{}, &RunError{Code: 1, Message: fmt.Sprintf("failed to enter raw mode: %v", err), Err: err}
@@ -76,29 +61,36 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 		}()
 	}
 
-	cmd := &exec.Cmd{Path: path, Args: append([]string(nil), argv...)}
-	ptmx, err := pty.StartWithSize(cmd, windowSize)
+	manager, err := session.NewManager(session.ManagerOptions{GracePeriod: r.GracePeriod})
 	if err != nil {
-		return Result{}, startError(argv[0], err)
+		return Result{}, &RunError{Code: 1, Message: fmt.Sprintf("failed to create session manager: %v", err), Err: err}
 	}
 	defer func() {
-		if closeErr := ptmx.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
-			r.debugf("failed to close PTY: %v", closeErr)
+		closeContext, cancel := context.WithTimeout(context.Background(), managerCloseTimeout(r.GracePeriod))
+		defer cancel()
+		if closeErr := manager.Close(closeContext); closeErr != nil && returnErr == nil {
+			returnErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to close session manager: %v", closeErr), Err: closeErr}
 		}
 	}()
+
+	managed, err := manager.Start(ctx, argv, session.StartOptions{Rows: rows, Cols: cols})
+	if err != nil {
+		return Result{}, err
+	}
+	subscription := managed.Subscribe()
+	defer subscription.Close()
 
 	signalCh, stopSignals := r.signalChannel()
 	defer stopSignals()
 
 	inputCtx, cancelInput := context.WithCancel(ctx)
 	defer cancelInput()
-
 	inputDone := make(chan error, 1)
 	go func() {
-		inputErr := pumpInput(inputCtx, ptmx, r.Stdin)
+		inputErr := pumpInput(inputCtx, managed, r.Stdin)
 		if errors.Is(inputErr, io.EOF) {
 			if !stdinIsTerminal {
-				if _, writeErr := ptmx.Write([]byte{4}); writeErr != nil && !isExpectedCloseError(writeErr) {
+				if _, writeErr := managed.Write([]byte{4}); writeErr != nil && !isExpectedCloseError(writeErr) {
 					inputErr = fmt.Errorf("send end of input: %w", writeErr)
 				} else {
 					inputErr = nil
@@ -110,65 +102,35 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 		inputDone <- inputErr
 	}()
 
-	outputDone := make(chan copyResult, 1)
+	outputDone := make(chan error, 1)
 	go func() {
-		_, outputErr := io.Copy(r.Stdout, ptmx)
-		outputDone <- copyResult{err: outputErr}
-	}()
-
-	waitDone := make(chan error, 1)
-	go func() {
-		waitDone <- cmd.Wait()
+		if initial := subscription.Initial(); len(initial) > 0 {
+			if _, writeErr := writeAll(r.Stdout, initial); writeErr != nil {
+				outputDone <- fmt.Errorf("write terminal history: %w", writeErr)
+				return
+			}
+		}
+		for output := range subscription.Output() {
+			if _, writeErr := writeAll(r.Stdout, output); writeErr != nil {
+				outputDone <- fmt.Errorf("write terminal output: %w", writeErr)
+				return
+			}
+		}
+		outputDone <- subscription.Err()
 	}()
 
 	var (
-		childExited   bool
-		outputEnded   bool
-		inputEnded    bool
-		waitErr       error
-		ivyErr        error
-		shutdownTimer *time.Timer
-		drainTimer    *time.Timer
-		contextDone   = ctx.Done()
-		shutdownCh    <-chan time.Time
-		drainCh       <-chan time.Time
-		shuttingDown  bool
+		sessionEnded bool
+		outputEnded  bool
+		inputEnded   bool
+		ivyErr       error
+		contextDone  = ctx.Done()
 	)
 
-	stopTimer := func(timer *time.Timer) {
-		if timer != nil && !timer.Stop() {
-			select {
-			case <-timer.C:
-			default:
-			}
-		}
-	}
-	defer func() {
-		stopTimer(shutdownTimer)
-		stopTimer(drainTimer)
-	}()
-
-	requestShutdown := func(sig syscall.Signal) {
-		if shuttingDown {
-			r.debugf("second shutdown request; killing child process group")
-			_ = signalProcessGroup(cmd.Process.Pid, syscall.SIGKILL)
-			return
-		}
-		shuttingDown = true
-		if signalErr := signalProcessGroup(cmd.Process.Pid, sig); signalErr != nil && !errors.Is(signalErr, syscall.ESRCH) {
-			r.debugf("failed to forward %s: %v", sig, signalErr)
-		}
-		shutdownTimer = time.NewTimer(r.gracePeriod())
-		shutdownCh = shutdownTimer.C
-	}
-
-	for !childExited || !outputEnded {
+	for !sessionEnded || !outputEnded {
 		select {
 		case <-contextDone:
 			contextDone = nil
-			if !childExited {
-				requestShutdown(syscall.SIGTERM)
-			}
 
 		case receivedSignal, ok := <-signalCh:
 			if !ok {
@@ -179,22 +141,17 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 			if !ok {
 				continue
 			}
-			switch sig {
-			case syscall.SIGWINCH:
-				if stdinIsTerminal && !childExited {
-					if resizeErr := copyTerminalSize(r.Stdin, ptmx); resizeErr != nil && !isExpectedCloseError(resizeErr) {
-						r.debugf("failed to resize child PTY: %v", resizeErr)
+			if sig == syscall.SIGWINCH {
+				if stdinIsTerminal && !sessionEnded {
+					if resizeErr := inheritTerminalSize(r.Stdin, managed); resizeErr != nil && !isExpectedCloseError(resizeErr) {
+						r.debugf("failed to resize session PTY: %v", resizeErr)
 					}
 				}
-			case syscall.SIGINT:
-				if !childExited {
-					if signalErr := signalProcessGroup(cmd.Process.Pid, sig); signalErr != nil && !errors.Is(signalErr, syscall.ESRCH) {
-						r.debugf("failed to forward SIGINT: %v", signalErr)
-					}
-				}
-			case syscall.SIGTERM, syscall.SIGHUP:
-				if !childExited {
-					requestShutdown(sig)
+				continue
+			}
+			if !sessionEnded {
+				if signalErr := managed.Signal(sig); signalErr != nil && !errors.Is(signalErr, session.ErrClosed) {
+					r.debugf("failed to forward %s: %v", sig, signalErr)
 				}
 			}
 
@@ -205,47 +162,24 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 				if ivyErr == nil {
 					ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to read terminal input: %v", inputErr), Err: inputErr}
 				}
-				if !childExited {
-					requestShutdown(syscall.SIGHUP)
+				if !sessionEnded {
+					_ = managed.Signal(syscall.SIGHUP)
 				}
 			}
 
-		case output := <-outputDone:
+		case outputErr := <-outputDone:
 			outputEnded = true
 			outputDone = nil
-			if output.err != nil && !isExpectedPTYReadError(output.err) {
-				if ivyErr == nil {
-					ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to read PTY output: %v", output.err), Err: output.err}
-				}
-				if !childExited {
-					requestShutdown(syscall.SIGHUP)
+			if outputErr != nil && ivyErr == nil {
+				ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to stream terminal output: %v", outputErr), Err: outputErr}
+				if !sessionEnded {
+					_ = managed.Signal(syscall.SIGHUP)
 				}
 			}
 
-		case waitErr = <-waitDone:
-			childExited = true
-			waitDone = nil
+		case <-managed.Done():
+			sessionEnded = true
 			cancelInput()
-			stopTimer(shutdownTimer)
-			shutdownCh = nil
-			if !outputEnded {
-				drainTimer = time.NewTimer(outputDrainTimeout)
-				drainCh = drainTimer.C
-			}
-
-		case <-shutdownCh:
-			shutdownCh = nil
-			if !childExited {
-				r.debugf("child did not exit within %s; killing process group", r.gracePeriod())
-				_ = signalProcessGroup(cmd.Process.Pid, syscall.SIGKILL)
-			}
-
-		case <-drainCh:
-			drainCh = nil
-			if !outputEnded {
-				r.debugf("closing PTY after output drain timeout")
-				_ = ptmx.Close()
-			}
 		}
 	}
 
@@ -263,10 +197,14 @@ func (r Runner) Run(ctx context.Context, argv []string) (result Result, returnEr
 		}
 	}
 
+	result, sessionErr := managed.Wait()
 	if ivyErr != nil {
 		return Result{}, ivyErr
 	}
-	return Result{ExitCode: childExitCode(waitErr)}, nil
+	if sessionErr != nil {
+		return Result{}, sessionErr
+	}
+	return result, nil
 }
 
 func (r Runner) signalChannel() (<-chan os.Signal, func()) {
@@ -282,70 +220,25 @@ func (r Runner) signalChannel() (<-chan os.Signal, func()) {
 	}
 }
 
-func resolveExecutable(name string) (string, error) {
-	path, err := exec.LookPath(name)
-	if err == nil || errors.Is(err, exec.ErrDot) {
-		return path, nil
-	}
-
-	label := commandLabel(name)
-	if errors.Is(err, fs.ErrPermission) {
-		return "", &RunError{Code: 126, Message: fmt.Sprintf("cannot execute command: %s: permission denied", label), Err: err}
-	}
-	return "", &RunError{Code: 127, Message: fmt.Sprintf("command not found: %s", label), Err: err}
+type terminalResizer interface {
+	Resize(cols, rows uint16) error
 }
 
-func startError(name string, err error) error {
-	code := 1
-	message := fmt.Sprintf("failed to create PTY: %v", err)
-	if errors.Is(err, fs.ErrPermission) || errors.Is(err, syscall.ENOEXEC) {
-		code = 126
-		message = fmt.Sprintf("cannot execute command: %s: %v", commandLabel(name), err)
+func inheritTerminalSize(source *os.File, target terminalResizer) error {
+	size, err := pty.GetsizeFull(source)
+	if err != nil {
+		return err
 	}
-	return &RunError{Code: code, Message: message, Err: err}
-}
-
-func commandLabel(name string) string {
-	if strings.IndexFunc(name, unicode.IsControl) >= 0 {
-		return strconv.Quote(name)
-	}
-	return name
-}
-
-func childExitCode(waitErr error) int {
-	if waitErr == nil {
-		return 0
-	}
-
-	var exitErr *exec.ExitError
-	if !errors.As(waitErr, &exitErr) {
-		return 1
-	}
-	status, ok := exitErr.Sys().(syscall.WaitStatus)
-	if !ok {
-		if code := exitErr.ExitCode(); code >= 0 {
-			return code
-		}
-		return 1
-	}
-	if status.Signaled() {
-		return 128 + int(status.Signal())
-	}
-	return status.ExitStatus()
-}
-
-func signalProcessGroup(pid int, sig syscall.Signal) error {
-	return syscall.Kill(-pid, sig)
-}
-
-func copyTerminalSize(source, target *os.File) error {
-	return pty.InheritSize(source, target)
-}
-
-func isExpectedPTYReadError(err error) bool {
-	return err == nil || errors.Is(err, syscall.EIO) || isExpectedCloseError(err)
+	return target.Resize(size.Cols, size.Rows)
 }
 
 func isExpectedCloseError(err error) bool {
-	return errors.Is(err, os.ErrClosed) || errors.Is(err, syscall.EBADF) || errors.Is(err, syscall.EIO)
+	return errors.Is(err, os.ErrClosed) || errors.Is(err, syscall.EBADF) || errors.Is(err, syscall.EIO) || errors.Is(err, session.ErrClosed)
+}
+
+func managerCloseTimeout(gracePeriod time.Duration) time.Duration {
+	if gracePeriod <= 0 {
+		gracePeriod = 2 * time.Second
+	}
+	return gracePeriod + time.Second
 }
