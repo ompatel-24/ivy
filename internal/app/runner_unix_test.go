@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -68,6 +69,7 @@ func TestRunnerTransportEndToEnd(t *testing.T) {
 	var stdout, stderr lockedBuffer
 	runner := Runner{
 		ListenAddress: "127.0.0.1:0",
+		WebRoot:       testWebRoot(t),
 		Terminal: terminal.Runner{
 			Stdin:       stdinReader,
 			Stdout:      &stdout,
@@ -92,6 +94,10 @@ func TestRunnerTransportEndToEnd(t *testing.T) {
 	}
 	token := strings.TrimPrefix(parsed.Fragment, "token=")
 	parsed.Fragment = ""
+	sessionID := strings.TrimPrefix(parsed.Path, "/s/")
+	if sessionID == parsed.Path || sessionID == "" {
+		t.Fatalf("connection URL path = %q, want /s/<id>", parsed.Path)
+	}
 
 	healthURL := parsed.Scheme + "://" + parsed.Host + "/health"
 	response, err := http.Get(healthURL)
@@ -102,8 +108,16 @@ func TestRunnerTransportEndToEnd(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("GET /health status = %d", response.StatusCode)
 	}
+	response, err = http.Get(parsed.String())
+	if err != nil {
+		t.Fatalf("GET Session page: %v", err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("GET Session page status = %d", response.StatusCode)
+	}
 
-	wsURL := "ws://" + parsed.Host + parsed.Path + "/ws"
+	wsURL := "ws://" + parsed.Host + "/api/v1/sessions/" + sessionID + "/ws"
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	connection, response, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{
 		Subprotocols: []string{protocol.Subprotocol, protocol.AuthPrefix + token},
@@ -166,6 +180,7 @@ func TestRunnerStopsSessionWhenTransportFailsUnexpectedly(t *testing.T) {
 	var stdout, stderr lockedBuffer
 	runner := Runner{
 		ListenAddress: "127.0.0.1:0",
+		WebRoot:       testWebRoot(t),
 		Terminal: terminal.Runner{
 			Stdin:       stdin,
 			Stdout:      &stdout,
@@ -188,6 +203,47 @@ func TestRunnerStopsSessionWhenTransportFailsUnexpectedly(t *testing.T) {
 	if !strings.Contains(stderr.String(), "ivy: transport http://") {
 		t.Fatalf("transport failed before the child was launched: stderr=%q", stderr.String())
 	}
+}
+
+func TestRunnerRejectsMissingWebAssetsBeforeLaunchingCommand(t *testing.T) {
+	stdin, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stdin.Close()
+	var stdout, stderr lockedBuffer
+	webRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(webRoot, "index.html"), []byte(`<script src="/assets/missing.js"></script>`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runner := Runner{
+		ListenAddress: "127.0.0.1:0",
+		WebRoot:       webRoot,
+		Terminal:      terminal.Runner{Stdin: stdin, Stdout: &stdout, Stderr: &stderr},
+	}
+
+	_, runErr := runner.Run(context.Background(), []string{"ivy-command-that-must-not-launch"})
+	if runErr == nil || terminal.ErrorCode(runErr) != 1 || !strings.Contains(runErr.Error(), "failed to load mobile client") {
+		t.Fatalf("Runner.Run() error = %v, want mobile-client asset failure", runErr)
+	}
+	if strings.Contains(runErr.Error(), "command not found") || stderr.String() != "" {
+		t.Fatalf("child launch or banner occurred before asset validation: error=%v stderr=%q", runErr, stderr.String())
+	}
+}
+
+func testWebRoot(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "assets"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte(`<!doctype html><title>Ivy test</title><script src="/assets/app.js"></script>`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "assets", "app.js"), []byte("console.log('ivy')"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root
 }
 
 func waitForConnectionURL(t *testing.T, buffer *lockedBuffer) string {

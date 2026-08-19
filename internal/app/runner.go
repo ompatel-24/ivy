@@ -20,6 +20,7 @@ const cleanupTimeout = 3 * time.Second
 type Runner struct {
 	Terminal      terminal.Runner
 	ListenAddress string
+	WebRoot       string
 
 	serveTransport func(*server.Server, net.Listener) error
 }
@@ -39,6 +40,14 @@ func (r Runner) Run(ctx context.Context, argv []string) (session.Result, error) 
 		return session.Result{}, runError("failed to start local transport: %v", err)
 	}
 	defer listener.Close()
+
+	webAssets, err := resolveWebAssets(r.WebRoot)
+	if err != nil {
+		return session.Result{}, runError("failed to load mobile client: %v", err)
+	}
+	if err := server.ValidateWebAssets(webAssets); err != nil {
+		return session.Result{}, runError("failed to load mobile client: %v", err)
+	}
 
 	token, credential, err := server.NewCredential()
 	if err != nil {
@@ -61,7 +70,7 @@ func (r Runner) Run(ctx context.Context, argv []string) (session.Result, error) 
 		return session.Result{}, err
 	}
 
-	transport := server.New(manager, managed.Metadata().ID, credential)
+	transport := server.New(manager, managed.Metadata().ID, credential, webAssets)
 	connectionURL, err := server.ConnectionURL(listener.Addr(), managed.Metadata().ID, token)
 	if err != nil {
 		cancel()

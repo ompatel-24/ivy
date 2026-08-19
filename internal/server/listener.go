@@ -58,7 +58,7 @@ func ConnectionURL(address net.Addr, sessionID, token string) (string, error) {
 	result := url.URL{
 		Scheme:   "http",
 		Host:     net.JoinHostPort(host, strconv.Itoa(tcpAddress.Port)),
-		Path:     "/api/v1/sessions/" + sessionID,
+		Path:     "/s/" + sessionID,
 		Fragment: "token=" + token,
 	}
 	return result.String(), nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -32,6 +33,7 @@ type Server struct {
 	sessionID  string
 	credential Credential
 	limiter    *failureLimiter
+	web        fs.FS
 
 	httpServer *http.Server
 	ctx        context.Context
@@ -51,23 +53,31 @@ func (s *Server) runBeforeWriteHook(connection *websocket.Conn, messageType webs
 	}
 }
 
-func New(manager *session.Manager, sessionID string, credential Credential) *Server {
+func New(manager *session.Manager, sessionID string, credential Credential, web fs.FS) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	result := &Server{
 		manager:     manager,
 		sessionID:   sessionID,
 		credential:  credential,
 		limiter:     newFailureLimiter(),
+		web:         web,
 		ctx:         ctx,
 		cancel:      cancel,
 		connections: make(map[*websocket.Conn]struct{}),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", result.handleHealth)
+	mux.HandleFunc("GET /s/{id}", result.handleSessionPage)
+	mux.HandleFunc("GET /assets/{path...}", result.handleWebAsset)
 	mux.HandleFunc("GET /api/v1/sessions/{id}", result.handleMetadata)
 	mux.HandleFunc("GET /api/v1/sessions/{id}/ws", result.handleWebSocket)
 	result.httpServer = &http.Server{
-		Handler:           mux,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			if strings.HasPrefix(request.URL.Path, "/s/") || strings.HasPrefix(request.URL.Path, "/assets/") {
+				setWebSecurityHeaders(w.Header())
+			}
+			mux.ServeHTTP(w, request)
+		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 		IdleTimeout:       idleTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
