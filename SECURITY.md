@@ -65,3 +65,24 @@ relay or tunnel.
 TLS/WSS, hosted relay, and end-to-end encryption are not implemented yet. Those
 features must preserve the rule that credentials are never server-logged and
 must use standard cryptographic primitives rather than custom encryption.
+
+## Release supply chain
+
+Official releases contain SHA-256 checksums and GitHub provenance attestations
+for every platform archive and the checksum manifest. Verify both before
+installing a downloaded binary:
+
+```bash
+shasum -a 256 -c ivy_0.1.0_checksums.txt
+gh attestation verify ivy_0.1.0_darwin_arm64.tar.gz --repo ompatel-24/ivy
+```
+
+The release workflow uses the repository-scoped `GITHUB_TOKEN` only for Ivy's
+GitHub release. Homebrew formula publishing uses a separate fine-grained token
+restricted to `ompatel-24/homebrew-tap` with Contents read/write access. It is
+passed only to the formula publisher and must never appear in repository files,
+logs, issues, or support output.
+
+Ivy's macOS binaries are currently unsigned. The project publishes a Homebrew
+formula rather than a cask to avoid presenting an unsigned app bundle as a
+signed distribution. Apple signing and additional packaging are deferred.

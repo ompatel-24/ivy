@@ -1,12 +1,13 @@
 BINARY := dist/ivy
 GO ?= go
+GORELEASER ?= goreleaser
 NPM ?= npm
 VERSION ?= dev
 LDFLAGS := -X github.com/ompatel-24/ivy/internal/version.Value=$(VERSION)
 WEB_DIR := web
 EMBEDDED_WEB := internal/webassets/dist
 
-.PHONY: build dev web web-check test lint
+.PHONY: build dev web web-check test lint release-check release-snapshot
 
 build: web
 	rm -rf dist/web
@@ -21,6 +22,13 @@ lint: web-check
 	$(NPM) --prefix $(WEB_DIR) run typecheck
 	@files="$$(gofmt -l .)"; if [ -n "$$files" ]; then echo "The following files need gofmt:"; echo "$$files"; exit 1; fi
 	$(GO) vet ./...
+
+release-check:
+	GORELEASER=$(GORELEASER) ./scripts/check-goreleaser.sh
+
+release-snapshot: release-check
+	$(GORELEASER) release --snapshot --clean
+	./scripts/verify-release.sh 0.0.0-snapshot
 
 web:
 	$(NPM) --prefix $(WEB_DIR) ci
