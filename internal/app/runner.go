@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"time"
 
+	"github.com/ompatel-24/ivy/internal/pairing"
 	"github.com/ompatel-24/ivy/internal/server"
 	"github.com/ompatel-24/ivy/internal/session"
 	"github.com/ompatel-24/ivy/internal/terminal"
+	"golang.org/x/term"
 )
 
 const cleanupTimeout = 3 * time.Second
@@ -23,6 +26,8 @@ type Runner struct {
 	WebRoot       string
 
 	serveTransport func(*server.Server, net.Listener) error
+	formatPairing  func(string, pairing.Options) (string, error)
+	pairingIsTTY   func(io.Writer) bool
 }
 
 type terminalOutcome struct {
@@ -77,6 +82,33 @@ func (r Runner) Run(ctx context.Context, argv []string) (session.Result, error) 
 		closeManager(manager)
 		return session.Result{}, runError("failed to create transport URL: %v", err)
 	}
+	stderr := r.Terminal.Stderr
+	if stderr == nil {
+		stderr = io.Discard
+	}
+	formatPairing := r.formatPairing
+	if formatPairing == nil {
+		formatPairing = pairing.Format
+	}
+	pairingIsTTY := r.pairingIsTTY
+	if pairingIsTTY == nil {
+		pairingIsTTY = isTerminalWriter
+	}
+	pairingOutput, err := formatPairing(connectionURL, pairing.Options{
+		Interactive: pairingIsTTY(stderr),
+		Columns:     startOptions.Cols,
+		Term:        os.Getenv("TERM"),
+	})
+	if err != nil {
+		cancel()
+		_ = closeManager(manager)
+		return session.Result{}, runError("failed to create pairing QR code: %v", err)
+	}
+	if _, err := io.WriteString(stderr, pairingOutput); err != nil {
+		cancel()
+		_ = closeManager(manager)
+		return session.Result{}, runError("failed to display pairing information: %v", err)
+	}
 
 	serveDone := make(chan error, 1)
 	go func() {
@@ -86,12 +118,6 @@ func (r Runner) Run(ctx context.Context, argv []string) (session.Result, error) 
 		}
 		serveDone <- transport.Serve(listener)
 	}()
-
-	stderr := r.Terminal.Stderr
-	if stderr == nil {
-		stderr = io.Discard
-	}
-	fmt.Fprintf(stderr, "ivy: transport %s\n", connectionURL)
 
 	terminalDone := make(chan terminalOutcome, 1)
 	go func() {
@@ -136,6 +162,11 @@ func (r Runner) Run(ctx context.Context, argv []string) (session.Result, error) 
 		return session.Result{}, runError("failed to close session manager: %v", managerErr)
 	}
 	return outcome.result, nil
+}
+
+func isTerminalWriter(writer io.Writer) bool {
+	file, ok := writer.(*os.File)
+	return ok && term.IsTerminal(int(file.Fd()))
 }
 
 func closeManager(manager *session.Manager) error {

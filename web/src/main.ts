@@ -5,6 +5,7 @@ import "./style.css";
 
 import { SessionClient, type ClientState } from "./client";
 import { clearCredential, loadCredentials } from "./config";
+import { HelperControls } from "./helper-controls";
 import type { SessionMetadata } from "./protocol";
 import { SizeTracker } from "./size";
 
@@ -13,6 +14,7 @@ const commandElement = requiredElement("command");
 const directoryElement = requiredElement("directory");
 const statusElement = requiredElement("status");
 const statusLabelElement = requiredElement("status-label");
+const helperControlsElement = requiredElement("helper-controls");
 
 const terminal = new Terminal({
   allowProposedApi: false,
@@ -48,12 +50,19 @@ if (!credentials) {
   fitTerminal();
 } else {
   const sizeTracker = new SizeTracker();
-  const client = new SessionClient({
+  let client: SessionClient;
+  const helperControls = new HelperControls(
+    helperControlsElement,
+    (data) => client.sendInput(data),
+    () => terminal.focus(),
+  );
+  client = new SessionClient({
     sessionID: credentials.sessionID,
     token: credentials.token,
     callbacks: {
       onState(state, label) {
         terminal.options.disableStdin = state !== "live";
+        helperControls.setEnabled(state === "live");
         setStatus(state, label);
         if (state === "live") {
           scheduleFit(true);
@@ -114,6 +123,7 @@ if (!credentials) {
 
   window.addEventListener("pagehide", () => {
     resizeObserver.disconnect();
+    helperControls.dispose();
     client.dispose();
   });
 

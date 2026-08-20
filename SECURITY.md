@@ -29,6 +29,13 @@ unknown Session. It does not use cookies or persistent local storage. Closing
 the browser tab ends the storage lifetime, subject to the browser's normal tab
 restoration behavior.
 
+Milestone 5 renders that same authenticated URL as a QR code in the controlling
+terminal. The QR is a visual representation of the session-long bearer token,
+not a one-time exchange. Anyone who scans or photographs it while the Session
+is running can control the terminal, so treat terminal scrollback and QR
+screenshots as credentials. Ivy retains only the token digest and does not log
+the QR payload.
+
 WebSockets enforce same-origin checks, HTTP responses do not enable CORS, input
 sizes are bounded, and authenticated metadata omits the environment and full
 argument vector. A client disconnect or protocol violation never terminates the
@@ -47,7 +54,11 @@ private network: anyone able to observe that traffic may read terminal contents
 or capture the token. Do not expose the listener to the public internet,
 forward its port, or place it behind an untrusted proxy.
 
-TLS/WSS, QR pairing, hosted relay, and end-to-end encryption are not implemented
-yet. Those features must preserve the rule that credentials are never
-server-logged and must use standard cryptographic primitives rather than custom
-encryption.
+Some public and café Wi-Fi networks isolate connected devices, so a phone may
+be unable to reach the computer even when both appear to use the same network.
+QR pairing does not change network reachability and must not be treated as a
+relay or tunnel.
+
+TLS/WSS, hosted relay, and end-to-end encryption are not implemented yet. Those
+features must preserve the rule that credentials are never server-logged and
+must use standard cryptographic primitives rather than custom encryption.
