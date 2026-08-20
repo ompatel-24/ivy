@@ -5,22 +5,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/ompatel-24/ivy/internal/webassets"
 )
 
 func resolveWebAssets(explicitRoot string) (fs.FS, error) {
 	if explicitRoot != "" {
 		return webAssetsAt(explicitRoot)
 	}
-
-	executable, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("locate Ivy binary: %w", err)
-	}
-	assets, err := webAssetsAt(filepath.Join(filepath.Dir(executable), "web"))
-	if err == nil {
-		return assets, nil
-	}
-	return nil, fmt.Errorf("web assets not found beside the Ivy binary; run 'make build' or set IVY_WEB_DIR")
+	return webassets.FS(), nil
 }
 
 func webAssetsAt(root string) (fs.FS, error) {

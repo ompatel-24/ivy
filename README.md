@@ -15,8 +15,8 @@ mobile browser terminal over the local network.
 
 ## Current status
 
-Milestone 5 adds QR pairing and phone-friendly helper controls to the
-mobile-first xterm.js client. Setting `IVY_LISTEN` now adds:
+Milestone 6 packages the mobile-first xterm.js client inside the Ivy binary.
+Setting `IVY_LISTEN` adds:
 
 - a same-origin browser terminal for the active Session;
 - a scannable authenticated Session URL in the local terminal;
@@ -25,16 +25,19 @@ mobile-first xterm.js client. Setting `IVY_LISTEN` now adds:
 - bounded-history replay and automatic reconnection after network loss; and
 - per-tab token handoff without cookies, query strings, or persistent storage.
 
-There is still no TLS termination, E2EE, hosted relay, or embedded frontend.
-Networking is disabled unless explicitly enabled.
+The production distribution is one self-contained executable. There is still
+no TLS termination, E2EE, or hosted relay. Networking is disabled unless
+explicitly enabled.
 
 ## Build
 
-Ivy currently requires Go 1.23 or newer plus a Vite-compatible Node.js/npm
-toolchain to build. Node.js is not needed when running the built artifacts.
+Ivy requires Go 1.23 or newer. `make build` also requires a Vite-compatible
+Node.js/npm toolchain so it can verify and regenerate the committed browser
+bundle. Plain `go build` uses the committed bundle without Node.js, and Node.js
+is never needed to run Ivy.
 
 ```bash
-make build          # produces dist/ivy and dist/web
+make build          # produces the self-contained dist/ivy
 ./dist/ivy bash
 ```
 
@@ -82,8 +85,9 @@ The QR code contains the same session-long bearer token as the printed URL. Do
 not share screenshots of it. Public Wi-Fi may isolate clients from one another;
 Ivy's future hosted relay will address that reachability problem.
 
-The built binary finds mobile assets in `dist/web` beside it. Source-tree
-development can override the location with `IVY_WEB_DIR=web/dist`.
+Mobile assets are embedded in every Go build. `IVY_WEB_DIR` remains an explicit
+development/testing override; when set, Ivy requires that directory to contain
+a valid production client and fails before launching the child if it does not.
 
 ## Development
 
@@ -114,7 +118,6 @@ character.
 
 ## Roadmap
 
-- Embedded web assets and single-binary releases
 - Release artifacts and Homebrew packaging
 
 Hosted relay work is intentionally deferred until the local PTY and session
@@ -122,7 +125,7 @@ layers are solid.
 
 ## Platforms
 
-Milestone 4 targets macOS and Linux on amd64 and arm64. The browser client
+Milestone 6 targets macOS and Linux on amd64 and arm64. The browser client
 targets current stable Safari and Chrome. Windows is not currently supported.
 
 ## License

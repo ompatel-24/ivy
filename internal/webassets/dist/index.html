@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#09110d" />
+    <title>Ivy Terminal</title>
+    <script type="module" crossorigin src="/assets/index-B1_BhVjm.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-mtzEPa3Z.css">
+  </head>
+  <body>
+    <main id="app" class="app">
+      <header class="session-header">
+        <div class="brand" aria-label="Ivy">
+          <span aria-hidden="true">🌿</span>
+          <span>Ivy</span>
+        </div>
+        <div class="session-details">
+          <strong id="command">Terminal</strong>
+          <span id="directory"></span>
+        </div>
+        <div id="status" class="status status--connecting" role="status" aria-live="polite">
+          <span class="status__dot" aria-hidden="true"></span>
+          <span id="status-label">Connecting</span>
+        </div>
+      </header>
+      <section id="terminal" class="terminal" aria-label="Ivy terminal session"></section>
+      <nav id="helper-controls" class="helper-controls" aria-label="Terminal helper keys">
+        <button type="button" data-helper-key="ctrl-c" aria-label="Send Ctrl+C" disabled>Ctrl+C</button>
+        <button type="button" data-helper-key="ctrl-d" aria-label="Send Ctrl+D" disabled>Ctrl+D</button>
+        <button type="button" data-helper-key="escape" aria-label="Send Escape" disabled>Esc</button>
+        <button type="button" data-helper-key="tab" aria-label="Send Tab" disabled>Tab</button>
+        <button type="button" data-helper-key="up" aria-label="Send Up Arrow" disabled>↑</button>
+        <button type="button" data-helper-key="down" aria-label="Send Down Arrow" disabled>↓</button>
+        <button type="button" data-helper-key="left" aria-label="Send Left Arrow" disabled>←</button>
+        <button type="button" data-helper-key="right" aria-label="Send Right Arrow" disabled>→</button>
+      </nav>
+    </main>
+  </body>
+</html>

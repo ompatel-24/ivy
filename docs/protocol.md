@@ -2,8 +2,8 @@
 
 Ivy exposes an authenticated HTTP/WebSocket transport when
 `IVY_LISTEN=<host:port>` is set. The protocol is agent-agnostic: terminal bytes
-are never parsed for Claude, Codex, or any other program. Milestone 5 adds QR
-pairing and helper keys without changing protocol version 1.
+are never parsed for Claude, Codex, or any other program. Milestone 6 embeds the
+browser client without changing QR pairing, helper keys, or protocol version 1.
 
 ## Discovery and authentication
 

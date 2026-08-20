@@ -1,8 +1,8 @@
 # Mobile browser client
 
-Milestone 5 provides a small vanilla TypeScript and xterm.js client for the
-local authenticated transport. It is a terminal surface, not an agent-specific
-UI: all input and output remain raw PTY bytes.
+Milestone 6 embeds the small vanilla TypeScript and xterm.js client into the
+Ivy executable. It is a terminal surface, not an agent-specific UI: all input
+and output remain raw PTY bytes.
 
 ## Build and run
 
@@ -11,13 +11,17 @@ make build
 IVY_LISTEN=127.0.0.1:7654 ./dist/ivy bash
 ```
 
-`make build` produces `dist/ivy` and its required `dist/web` directory. The
-frontend is not embedded until Milestone 6. `make web` builds only `web/dist`,
+`make build` produces one self-contained `dist/ivy`; no adjacent asset
+directory is required. `make web` regenerates the committed production bundle,
 and source development can use:
 
 ```bash
 make dev ARGS=bash IVY_LISTEN=127.0.0.1:7654
 ```
+
+A plain `go build` embeds the committed bundle without invoking Node.js.
+`IVY_WEB_DIR` can explicitly replace the embedded client for development or
+failure testing; Ivy validates the override before launching the child.
 
 For a phone on the same trusted Wi-Fi, replace loopback with the Mac's concrete
 LAN address. Never use a wildcard address. Open the printed `/s/<id>#token=...`

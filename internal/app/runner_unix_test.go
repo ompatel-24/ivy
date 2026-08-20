@@ -50,6 +50,7 @@ func TestRunnerWithoutListenAddressStaysQuiet(t *testing.T) {
 	defer stdin.Close()
 	var stdout, stderr lockedBuffer
 	runner := Runner{
+		WebRoot:  t.TempDir(),
 		Terminal: terminal.Runner{Stdin: stdin, Stdout: &stdout, Stderr: &stderr},
 		formatPairing: func(string, pairing.Options) (string, error) {
 			t.Fatal("network-disabled Runner attempted to format pairing output")
@@ -83,7 +84,6 @@ func TestRunnerFormatsPairingBeforeTerminalOutput(t *testing.T) {
 	var receivedOptions pairing.Options
 	runner := Runner{
 		ListenAddress: "127.0.0.1:0",
-		WebRoot:       testWebRoot(t),
 		Terminal: terminal.Runner{
 			Stdin:       stdinReader,
 			Stdout:      &combined,
@@ -124,7 +124,6 @@ func TestRunnerStopsChildWhenPairingGenerationFails(t *testing.T) {
 	var stdout, stderr lockedBuffer
 	runner := Runner{
 		ListenAddress: "127.0.0.1:0",
-		WebRoot:       testWebRoot(t),
 		Terminal: terminal.Runner{
 			Stdin:       stdin,
 			Stdout:      &stdout,
@@ -161,7 +160,6 @@ func TestRunnerTransportEndToEnd(t *testing.T) {
 	var stdout, stderr lockedBuffer
 	runner := Runner{
 		ListenAddress: "127.0.0.1:0",
-		WebRoot:       testWebRoot(t),
 		Terminal: terminal.Runner{
 			Stdin:       stdinReader,
 			Stdout:      &stdout,

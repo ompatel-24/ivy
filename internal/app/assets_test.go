@@ -6,9 +6,41 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ompatel-24/ivy/internal/server"
 )
 
-func TestResolveWebAssetsExplicitRoot(t *testing.T) {
+func TestResolveWebAssetsUsesEmbeddedDefault(t *testing.T) {
+	originalDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDirectory); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	assets, err := resolveWebAssets("")
+	if err != nil {
+		t.Fatalf("resolveWebAssets(): %v", err)
+	}
+	if err := server.ValidateWebAssets(assets); err != nil {
+		t.Fatalf("embedded assets are invalid: %v", err)
+	}
+	index, err := fs.ReadFile(assets, "index.html")
+	if err != nil {
+		t.Fatalf("read embedded index: %v", err)
+	}
+	if !strings.Contains(string(index), `<main id="app"`) {
+		t.Fatalf("embedded index is not the Ivy client: %q", index)
+	}
+}
+
+func TestResolveWebAssetsExplicitRootTakesPrecedence(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ivy"), 0o644); err != nil {
 		t.Fatal(err)
