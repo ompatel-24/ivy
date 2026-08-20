@@ -19,12 +19,12 @@ been performed.
 
 | Program | Status | Notes |
 | --- | --- | --- |
-| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 5 QR and helper-control build against a live browser |
+| `ivy bash` | Verified | macOS arm64, 2026-08-19; standalone Milestone 6 binary with embedded browser client |
 | `ivy python` | Unavailable | No `python` or `python3` in the current PATH |
 | `ivy vim` | Unavailable | Not installed in the current PATH |
 | `ivy top` | Unavailable | Not installed in the current PATH |
 | `ivy claude` | Unavailable | Not installed in the current PATH |
-| `ivy codex` | Verified | macOS arm64, 2026-08-19; full-screen UI launched through the built binary |
+| `ivy codex` | Verified | macOS arm64, 2026-08-19; full-screen UI launched through the standalone binary |
 
 ## Session checks
 
@@ -60,6 +60,10 @@ These behaviors are covered by race-enabled HTTP/WebSocket integration tests:
 - [x] QR generation failure stops the child and restores the terminal lifecycle
 - [x] Non-interactive, dumb, and narrow terminals retain the URL fallback
 - [x] Interactive terminal renders one compact ANSI QR and one manual URL
+- [x] The mobile client is served when only the Ivy executable is present
+- [x] Changing the working directory does not affect embedded asset loading
+- [x] An invalid `IVY_WEB_DIR` override fails before child launch
+- [x] The generated-asset drift check matches a fresh Vite production build
 
 Manual loopback smoke test:
 
@@ -67,6 +71,10 @@ Manual loopback smoke test:
 IVY_LISTEN=127.0.0.1:7654 ./dist/ivy bash
 curl http://127.0.0.1:7654/health
 ```
+
+For the Milestone 6 distribution check, copy only `dist/ivy` into an empty
+temporary directory and repeat the loopback/browser test. No `web` directory
+should be present beside the executable.
 
 Copy the printed Session ID and fragment token into a separate shell to query
 the authenticated metadata endpoint. Do not paste real Session tokens into bug
@@ -104,6 +112,6 @@ Physical-device checks:
 
 | Browser | Status | Notes |
 | --- | --- | --- |
-| In-app Chromium | Verified | macOS arm64, 2026-08-19; 390x844 QR/helper-control build against a live PTY |
+| In-app Chromium | Verified | macOS arm64, 2026-08-19; embedded Milestone 6 client against a live standalone PTY |
 | Current iPhone Safari | Untested | Requires a physical iPhone on the same trusted LAN |
 | Current Android Chrome | Untested | Requires a physical Android device on the same trusted LAN |

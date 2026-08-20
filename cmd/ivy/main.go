@@ -33,7 +33,7 @@ Examples:
 Environment:
   IVY_LISTEN=<host:port>  Enable the authenticated local transport on one
                           concrete loopback or LAN interface.
-  IVY_WEB_DIR=<path>      Override the mobile client asset directory.
+  IVY_WEB_DIR=<path>      Override embedded mobile assets for development.
 `
 
 func main() {

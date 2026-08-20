@@ -41,10 +41,13 @@ sizes are bounded, and authenticated metadata omits the environment and full
 argument vector. A client disconnect or protocol violation never terminates the
 child Session.
 
-The static client is served only for the current routing ID. Assets are exact
-files from Ivy's configured web directory: directory listings and traversal are
-not supported. Browser responses use a restrictive content security policy,
-deny framing, suppress referrers, and disable unused device permissions.
+The static client is served only for the current routing ID. Production assets
+come from Ivy's embedded, build-verified filesystem. `IVY_WEB_DIR` can replace
+that filesystem explicitly for development, so users of the override are
+responsible for trusting its contents. In either mode, only exact files are
+served: directory listings and traversal are not supported. Browser responses
+use a restrictive content security policy, deny framing, suppress referrers,
+and disable unused device permissions.
 
 ## Limitations
 
