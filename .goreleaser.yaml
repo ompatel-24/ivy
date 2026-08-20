@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/goreleaser/goreleaser/v2.17.1/www/docs/static/schema.json
+version: 2
+
+project_name: ivy
+
+builds:
+  - id: ivy
+    main: ./cmd/ivy
+    binary: ivy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    mod_timestamp: "946684800"
+    ldflags:
+      - -s -w -X github.com/ompatel-24/ivy/internal/version.Value={{ .Version }}
+
+archives:
+  - id: release
+    ids:
+      - ivy
+    formats:
+      - tar.gz
+    name_template: ivy_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - src: LICENSE
+        info:
+          owner: root
+          group: root
+          mode: 420
+          mtime: "2000-01-01T00:00:00Z"
+      - src: README.md
+        info:
+          owner: root
+          group: root
+          mode: 420
+          mtime: "2000-01-01T00:00:00Z"
+    builds_info:
+      owner: root
+      group: root
+      mode: 493
+      mtime: "2000-01-01T00:00:00Z"
+
+checksum:
+  name_template: ivy_{{ .Version }}_checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: 0.0.0-snapshot
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: ompatel-24
+    name: ivy
+  name_template: Ivy {{ .Tag }}
+  draft: true
+  prerelease: auto
+
+brews:
+  - name: ivy
+    ids:
+      - release
+    repository:
+      owner: ompatel-24
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/ompatel-24/ivy
+    description: Take your terminal agents with you
+    license: MIT
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    install: |
+      bin.install "ivy"
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/ivy version")

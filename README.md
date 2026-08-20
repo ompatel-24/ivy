@@ -15,7 +15,9 @@ mobile browser terminal over the local network.
 
 ## Current status
 
-Milestone 6 packages the mobile-first xterm.js client inside the Ivy binary.
+Milestone 7 packages Ivy as versioned, verifiable release archives and a
+Homebrew formula. The mobile-first xterm.js client remains embedded inside the
+Ivy binary.
 Setting `IVY_LISTEN` adds:
 
 - a same-origin browser terminal for the active Session;
@@ -28,6 +30,31 @@ Setting `IVY_LISTEN` adds:
 The production distribution is one self-contained executable. There is still
 no TLS termination, E2EE, or hosted relay. Networking is disabled unless
 explicitly enabled.
+
+## Install
+
+On macOS or Linux with Homebrew:
+
+```bash
+brew install ompatel-24/tap/ivy
+ivy version
+```
+
+GitHub releases contain archives for macOS and Linux on amd64 and arm64. Each
+archive contains only `ivy`, `README.md`, and `LICENSE`. To install an archive,
+download the one for your platform, verify it, and place `ivy` somewhere on
+your `PATH`:
+
+```bash
+shasum -a 256 -c ivy_0.1.0_checksums.txt
+gh attestation verify ivy_0.1.0_darwin_arm64.tar.gz --repo ompatel-24/ivy
+tar -xzf ivy_0.1.0_darwin_arm64.tar.gz
+install ivy /usr/local/bin/ivy
+```
+
+Run `gh attestation verify` for the checksum manifest and every archive you
+download. Checksums detect corruption; GitHub provenance verifies that an
+artifact was built by Ivy's release workflow.
 
 ## Build
 
@@ -95,6 +122,8 @@ a valid production client and fails before launching the child if it does not.
 make lint
 make test
 make build
+make release-check
+make release-snapshot
 make dev ARGS=bash IVY_LISTEN=127.0.0.1:7654
 ```
 
@@ -103,6 +132,8 @@ matrix and current verified results. See [docs/sessions.md](docs/sessions.md) fo
 the Session contract, [docs/protocol.md](docs/protocol.md) for the transport
 protocol, [docs/mobile-client.md](docs/mobile-client.md) for the browser
 lifecycle, and [SECURITY.md](SECURITY.md) for the security model.
+Maintainers should also read [docs/releasing.md](docs/releasing.md) before
+creating a version tag.
 
 ## Session safety and limits
 
@@ -118,15 +149,18 @@ character.
 
 ## Roadmap
 
-- Release artifacts and Homebrew packaging
+- TLS/WSS and hosted relay connectivity
+- End-to-end encryption
+- Apple signing and additional package formats
 
-Hosted relay work is intentionally deferred until the local PTY and session
-layers are solid.
+Windows support, casks, automatic version selection, and hosted relays remain
+deferred.
 
 ## Platforms
 
-Milestone 6 targets macOS and Linux on amd64 and arm64. The browser client
-targets current stable Safari and Chrome. Windows is not currently supported.
+Milestone 7 publishes macOS and Linux archives for amd64 and arm64. The browser
+client targets current stable Safari and Chrome. Windows is not currently
+supported.
 
 ## License
 
