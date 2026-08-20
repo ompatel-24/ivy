@@ -29,7 +29,7 @@ body {
   right: 0;
   left: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: var(--ivy-viewport-height);
   min-height: 0;
   background:
@@ -123,10 +123,51 @@ body {
 .terminal {
   min-width: 0;
   min-height: 0;
-  padding: 0.6rem calc(0.45rem + env(safe-area-inset-right)) calc(0.45rem + env(safe-area-inset-bottom))
+  padding: 0.6rem calc(0.45rem + env(safe-area-inset-right)) 0.45rem
     calc(0.65rem + env(safe-area-inset-left));
   overflow: hidden;
   touch-action: pan-y;
+}
+
+.helper-controls {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(44px, 1fr));
+  gap: 0.3rem;
+  padding: 0.4rem calc(0.5rem + env(safe-area-inset-right)) calc(0.4rem + env(safe-area-inset-bottom))
+    calc(0.5rem + env(safe-area-inset-left));
+  border-top: 1px solid rgb(137 211 164 / 16%);
+  background: rgb(8 20 13 / 96%);
+}
+
+.helper-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.45rem;
+  border: 1px solid rgb(140 211 164 / 22%);
+  border-radius: 0.55rem;
+  color: #dcebe1;
+  font: 650 0.72rem/1 "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+  background: #15261b;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.helper-controls button:active:not(:disabled) {
+  border-color: rgb(126 226 168 / 55%);
+  background: #244b32;
+  transform: translateY(1px);
+}
+
+.helper-controls button:focus-visible {
+  outline: 2px solid #7ee2a8;
+  outline-offset: 1px;
+}
+
+.helper-controls button:disabled {
+  color: #68786e;
+  background: #111a14;
+  opacity: 0.62;
 }
 
 .terminal .xterm,
@@ -159,6 +200,12 @@ body {
   .terminal {
     padding-right: 0.8rem;
     padding-left: 1rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .helper-controls {
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
   }
 }
 

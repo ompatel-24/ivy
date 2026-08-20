@@ -19,7 +19,7 @@ been performed.
 
 | Program | Status | Notes |
 | --- | --- | --- |
-| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 4 built binary with local and browser-connected paths |
+| `ivy bash` | Verified | macOS arm64, 2026-08-19; Milestone 5 QR and helper-control build against a live browser |
 | `ivy python` | Unavailable | No `python` or `python3` in the current PATH |
 | `ivy vim` | Unavailable | Not installed in the current PATH |
 | `ivy top` | Unavailable | Not installed in the current PATH |
@@ -57,6 +57,9 @@ These behaviors are covered by race-enabled HTTP/WebSocket integration tests:
 - [x] Active WebSockets are closed within a bounded server shutdown
 - [x] Known Session page and exact built assets are served with security headers
 - [x] Missing mobile assets fail before the child starts
+- [x] QR generation failure stops the child and restores the terminal lifecycle
+- [x] Non-interactive, dumb, and narrow terminals retain the URL fallback
+- [x] Interactive terminal renders one compact ANSI QR and one manual URL
 
 Manual loopback smoke test:
 
@@ -83,9 +86,13 @@ Browser automation against the built binary:
 - [x] Same-tab reload reauthenticates and replays bounded history
 - [x] Missing and invalid credentials show terminal-safe errors
 - [x] Child exit disables input and reports the exit code
+- [ ] QR code scans to the exact authenticated Session URL
+- [x] Ctrl+C, Ctrl+D, Esc, Tab, and arrow helper buttons send exact PTY input
+- [x] Helper controls preserve focus and resize the terminal viewport correctly
 
 Physical-device checks:
 
+- [ ] Camera scans the QR code to the authenticated Session URL
 - [ ] Phone connects to the existing process
 - [ ] Phone disconnect does not stop the child
 - [ ] Phone reconnect resumes the same session
@@ -97,6 +104,6 @@ Physical-device checks:
 
 | Browser | Status | Notes |
 | --- | --- | --- |
-| In-app Chromium | Verified | macOS arm64, 2026-08-19; 390x844 responsive viewport against built assets |
+| In-app Chromium | Verified | macOS arm64, 2026-08-19; 390x844 QR/helper-control build against a live PTY |
 | Current iPhone Safari | Untested | Requires a physical iPhone on the same trusted LAN |
 | Current Android Chrome | Untested | Requires a physical Android device on the same trusted LAN |

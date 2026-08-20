@@ -2,12 +2,13 @@
 
 Ivy exposes an authenticated HTTP/WebSocket transport when
 `IVY_LISTEN=<host:port>` is set. The protocol is agent-agnostic: terminal bytes
-are never parsed for Claude, Codex, or any other program. Milestone 4 adds a
-same-origin browser implementation without changing protocol version 1.
+are never parsed for Claude, Codex, or any other program. Milestone 5 adds QR
+pairing and helper keys without changing protocol version 1.
 
 ## Discovery and authentication
 
-Ivy prints one URL to the controlling terminal before entering raw mode:
+Before entering raw mode, Ivy prints a compact QR code and the corresponding
+URL to an interactive terminal:
 
 ```text
 http://127.0.0.1:7654/s/<id>#token=<token>
@@ -15,6 +16,9 @@ http://127.0.0.1:7654/s/<id>#token=<token>
 
 The Session ID is routing metadata, not authentication. The token is a random
 256-bit base64url value. Its URL fragment is not included in HTTP requests.
+The QR encodes this exact URL and does not introduce a second credential or
+protocol exchange. Non-interactive, dumb, and narrow terminals receive only a
+one-line URL fallback.
 
 Routes:
 
@@ -90,3 +94,7 @@ Unexpected network failures retry after 250 ms, 500 ms, one second, two seconds,
 and then every five seconds. Retries pause while the page is hidden or the
 browser is offline and resume when it becomes visible and online. Input is
 disabled unless the WebSocket has completed its `hello` exchange.
+
+The mobile helper keys use ordinary binary input frames. Ctrl+C sends `0x03`,
+Ctrl+D sends `0x04`, Esc sends `0x1b`, Tab sends `0x09`, and arrow keys send the
+standard `ESC [ A/B/C/D` sequences. No protocol-version change is required.

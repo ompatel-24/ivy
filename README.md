@@ -15,16 +15,18 @@ mobile browser terminal over the local network.
 
 ## Current status
 
-Milestone 4 adds a minimal mobile-first xterm.js client over Milestone 3's
-opt-in authenticated local transport. Setting `IVY_LISTEN` now adds:
+Milestone 5 adds QR pairing and phone-friendly helper controls to the
+mobile-first xterm.js client. Setting `IVY_LISTEN` now adds:
 
 - a same-origin browser terminal for the active Session;
+- a scannable authenticated Session URL in the local terminal;
+- one-tap Ctrl+C, Ctrl+D, Esc, Tab, and arrow controls;
 - raw binary terminal input/output and responsive PTY resizing;
 - bounded-history replay and automatic reconnection after network loss; and
 - per-tab token handoff without cookies, query strings, or persistent storage.
 
-There is still no QR pairing, mobile helper-key row, TLS termination, E2EE, or
-hosted relay. Networking is disabled unless explicitly enabled.
+There is still no TLS termination, E2EE, hosted relay, or embedded frontend.
+Networking is disabled unless explicitly enabled.
 
 ## Build
 
@@ -68,12 +70,17 @@ such as `0.0.0.0`, `[::]`, and an empty host. A concrete LAN address can be used
 for trusted-LAN development, but the milestone does not provide TLS and must
 not be exposed to the internet.
 
-When enabled, Ivy prints a URL such as
-`http://127.0.0.1:7654/s/<id>#token=<token>`. Open it in a current browser, or
-bind Ivy to your Mac's concrete LAN address and open the printed URL on a phone
-using the same trusted Wi-Fi. The token fragment is not sent in HTTP requests;
-the browser moves it into per-tab session storage and removes it from the
-address bar.
+When enabled in an interactive terminal, Ivy prints a QR code plus a URL such
+as `http://127.0.0.1:7654/s/<id>#token=<token>`. Scan the QR code, open the URL
+directly, or bind Ivy to your Mac's concrete LAN address and scan it from a
+phone using the same trusted Wi-Fi. Narrow, dumb, and non-interactive terminals
+receive only the one-line URL fallback. The token fragment is not sent in HTTP
+requests; the browser moves it into per-tab session storage and removes it from
+the address bar.
+
+The QR code contains the same session-long bearer token as the printed URL. Do
+not share screenshots of it. Public Wi-Fi may isolate clients from one another;
+Ivy's future hosted relay will address that reachability problem.
 
 The built binary finds mobile assets in `dist/web` beside it. Source-tree
 development can override the location with `IVY_WEB_DIR=web/dist`.
@@ -107,8 +114,8 @@ character.
 
 ## Roadmap
 
-- Secure QR pairing and mobile helper controls
 - Embedded web assets and single-binary releases
+- Release artifacts and Homebrew packaging
 
 Hosted relay work is intentionally deferred until the local PTY and session
 layers are solid.

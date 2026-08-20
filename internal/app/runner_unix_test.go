@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/ompatel-24/ivy/internal/pairing"
 	"github.com/ompatel-24/ivy/internal/protocol"
 	"github.com/ompatel-24/ivy/internal/server"
 	"github.com/ompatel-24/ivy/internal/terminal"
@@ -47,7 +49,13 @@ func TestRunnerWithoutListenAddressStaysQuiet(t *testing.T) {
 	}
 	defer stdin.Close()
 	var stdout, stderr lockedBuffer
-	runner := Runner{Terminal: terminal.Runner{Stdin: stdin, Stdout: &stdout, Stderr: &stderr}}
+	runner := Runner{
+		Terminal: terminal.Runner{Stdin: stdin, Stdout: &stdout, Stderr: &stderr},
+		formatPairing: func(string, pairing.Options) (string, error) {
+			t.Fatal("network-disabled Runner attempted to format pairing output")
+			return "", nil
+		},
+	}
 
 	result, err := runner.Run(context.Background(), []string{"/usr/bin/true"})
 	if err != nil || result.ExitCode != 0 {
@@ -55,6 +63,90 @@ func TestRunnerWithoutListenAddressStaysQuiet(t *testing.T) {
 	}
 	if stderr.String() != "" {
 		t.Fatalf("network-disabled stderr = %q, want empty", stderr.String())
+	}
+}
+
+func TestRunnerFormatsPairingBeforeTerminalOutput(t *testing.T) {
+	t.Setenv("IVY_APP_TEST_HELPER", "1")
+	t.Setenv("TERM", "xterm-256color")
+	stdinReader, stdinWriter, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stdinReader.Close()
+	if _, err := io.WriteString(stdinWriter, "exit\n"); err != nil {
+		t.Fatal(err)
+	}
+	_ = stdinWriter.Close()
+
+	var combined lockedBuffer
+	var receivedOptions pairing.Options
+	runner := Runner{
+		ListenAddress: "127.0.0.1:0",
+		WebRoot:       testWebRoot(t),
+		Terminal: terminal.Runner{
+			Stdin:       stdinReader,
+			Stdout:      &combined,
+			Stderr:      &combined,
+			GracePeriod: 100 * time.Millisecond,
+		},
+		pairingIsTTY: func(io.Writer) bool { return true },
+		formatPairing: func(connectionURL string, options pairing.Options) (string, error) {
+			receivedOptions = options
+			if !strings.Contains(connectionURL, "/s/") || !strings.Contains(connectionURL, "#token=") {
+				t.Fatalf("pairing URL = %q", connectionURL)
+			}
+			return "PAIRING-BEFORE-RAW\n", nil
+		},
+	}
+
+	result, runErr := runner.Run(context.Background(), []string{os.Args[0], "-test.run=^TestAppHelperProcess$"})
+	if runErr != nil || result.ExitCode != 0 {
+		t.Fatalf("Runner.Run() = (%+v, %v)", result, runErr)
+	}
+	output := combined.String()
+	pairingIndex := strings.Index(output, "PAIRING-BEFORE-RAW")
+	childIndex := strings.Index(output, "APP-EXITING")
+	if pairingIndex < 0 || childIndex < 0 || pairingIndex > childIndex {
+		t.Fatalf("pairing output did not precede terminal history: %q", output)
+	}
+	if !receivedOptions.Interactive || receivedOptions.Columns != 80 || receivedOptions.Term != "xterm-256color" {
+		t.Fatalf("pairing options = %+v", receivedOptions)
+	}
+}
+
+func TestRunnerStopsChildWhenPairingGenerationFails(t *testing.T) {
+	stdin, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stdin.Close()
+	var stdout, stderr lockedBuffer
+	runner := Runner{
+		ListenAddress: "127.0.0.1:0",
+		WebRoot:       testWebRoot(t),
+		Terminal: terminal.Runner{
+			Stdin:       stdin,
+			Stdout:      &stdout,
+			Stderr:      &stderr,
+			GracePeriod: 100 * time.Millisecond,
+		},
+		pairingIsTTY: func(io.Writer) bool { return true },
+		formatPairing: func(string, pairing.Options) (string, error) {
+			return "", errors.New("injected QR failure")
+		},
+	}
+
+	started := time.Now()
+	_, runErr := runner.Run(context.Background(), []string{"/bin/sh", "-c", "sleep 30"})
+	if runErr == nil || terminal.ErrorCode(runErr) != 1 || !strings.Contains(runErr.Error(), "failed to create pairing QR code") {
+		t.Fatalf("Runner.Run() error = %v", runErr)
+	}
+	if elapsed := time.Since(started); elapsed > 2*time.Second {
+		t.Fatalf("Runner.Run() took %s after pairing failure", elapsed)
+	}
+	if stdout.String() != "" || stderr.String() != "" {
+		t.Fatalf("pairing failure produced output: stdout=%q stderr=%q", stdout.String(), stderr.String())
 	}
 }
 
