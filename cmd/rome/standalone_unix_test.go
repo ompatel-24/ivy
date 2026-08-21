@@ -19,14 +19,14 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/ompatel-24/ivy/internal/protocol"
+	"github.com/ompatel-24/rome/internal/protocol"
 )
 
 var standaloneAssetPattern = regexp.MustCompile(`(?:src|href)=["'](/assets/[^"'?#]+)["']`)
 
 func TestStandaloneBinaryServesEmbeddedClient(t *testing.T) {
 	if testing.Short() {
-		t.Skip("standalone binary smoke test builds Ivy")
+		t.Skip("standalone binary smoke test builds Rome")
 	}
 
 	packageDirectory, err := os.Getwd()
@@ -35,23 +35,23 @@ func TestStandaloneBinaryServesEmbeddedClient(t *testing.T) {
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(packageDirectory, "..", ".."))
 	distribution := t.TempDir()
-	binary := filepath.Join(distribution, "ivy")
-	build := exec.Command("go", "build", "-trimpath", "-o", binary, "./cmd/ivy")
+	binary := filepath.Join(distribution, "rome")
+	build := exec.Command("go", "build", "-trimpath", "-o", binary, "./cmd/rome")
 	build.Dir = repositoryRoot
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build standalone Ivy: %v\n%s", err, output)
+		t.Fatalf("build standalone Rome: %v\n%s", err, output)
 	}
 	entries, err := os.ReadDir(distribution)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name() != "ivy" {
-		t.Fatalf("standalone distribution entries = %v, want only ivy", entryNames(entries))
+	if len(entries) != 1 || entries[0].Name() != "rome" {
+		t.Fatalf("standalone distribution entries = %v, want only rome", entryNames(entries))
 	}
 
 	command := exec.Command(binary, "/bin/sh")
 	command.Dir = t.TempDir()
-	command.Env = append(os.Environ(), "IVY_LISTEN=127.0.0.1:0", "IVY_WEB_DIR=", "TERM=dumb")
+	command.Env = append(os.Environ(), "ROME_LISTEN=127.0.0.1:0", "ROME_WEB_DIR=", "TERM=dumb")
 	stdin, err := command.StdinPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +64,7 @@ func TestStandaloneBinaryServesEmbeddedClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := command.Start(); err != nil {
-		t.Fatalf("start standalone Ivy: %v", err)
+		t.Fatalf("start standalone Rome: %v", err)
 	}
 	defer stopStandaloneProcess(command)
 
@@ -120,13 +120,13 @@ func TestStandaloneBinaryServesEmbeddedClient(t *testing.T) {
 	if err := json.Unmarshal(data, &hello); err != nil || hello.Type != "hello" {
 		t.Fatalf("hello = %q, error=%v", data, err)
 	}
-	standaloneWriteWS(t, connection, []byte("printf 'IVY-STANDALONE\\n'\nexit\n"))
+	standaloneWriteWS(t, connection, []byte("printf 'ROME-STANDALONE\\n'\nexit\n"))
 
 	var sawOutput, sawExit bool
 	for !sawExit {
 		messageType, data = standaloneReadWS(t, connection)
 		if messageType == websocket.MessageBinary {
-			sawOutput = sawOutput || bytes.Contains(data, []byte("IVY-STANDALONE"))
+			sawOutput = sawOutput || bytes.Contains(data, []byte("ROME-STANDALONE"))
 			continue
 		}
 		var exit protocol.Exit
@@ -147,11 +147,11 @@ func TestStandaloneBinaryServesEmbeddedClient(t *testing.T) {
 	select {
 	case err := <-waitDone:
 		if err != nil {
-			t.Fatalf("standalone Ivy exit: %v", err)
+			t.Fatalf("standalone Rome exit: %v", err)
 		}
 		command = nil
 	case <-time.After(5 * time.Second):
-		t.Fatal("standalone Ivy did not exit")
+		t.Fatal("standalone Rome did not exit")
 	}
 }
 
@@ -176,7 +176,7 @@ func readStandaloneURL(t *testing.T, reader io.Reader) string {
 	}()
 	select {
 	case line := <-result:
-		const prefix = "ivy: transport "
+		const prefix = "rome: transport "
 		if !strings.HasPrefix(line, prefix) {
 			t.Fatalf("standalone transport output = %q", line)
 		}

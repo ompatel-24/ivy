@@ -22,7 +22,7 @@ import (
 )
 
 func TestSessionHelperProcess(t *testing.T) {
-	mode := os.Getenv("IVY_SESSION_TEST_HELPER")
+	mode := os.Getenv("ROME_SESSION_TEST_HELPER")
 	if mode == "" {
 		return
 	}
@@ -313,7 +313,7 @@ func TestManagerOptionValidation(t *testing.T) {
 }
 
 func TestResolveExecutableErrors(t *testing.T) {
-	_, err := resolveExecutable("ivy-session-test-command-that-does-not-exist")
+	_, err := resolveExecutable("rome-session-test-command-that-does-not-exist")
 	if err == nil {
 		t.Fatal("resolveExecutable() error = nil")
 	}
@@ -333,7 +333,7 @@ func printSessionSize(prefix string) {
 
 func sessionHelperArgv(t *testing.T, mode string) []string {
 	t.Helper()
-	t.Setenv("IVY_SESSION_TEST_HELPER", mode)
+	t.Setenv("ROME_SESSION_TEST_HELPER", mode)
 	return []string{os.Args[0], "-test.run=^TestSessionHelperProcess$"}
 }
 

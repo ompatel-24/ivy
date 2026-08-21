@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ompatel-24/ivy/internal/webassets"
+	"github.com/ompatel-24/rome/internal/webassets"
 )
 
 func resolveWebAssets(explicitRoot string) (fs.FS, error) {

@@ -3,7 +3,7 @@
 Milestone 2 moves PTY and child-process ownership into an internal,
 transport-independent Session. The local terminal and Milestone 3 HTTP/WebSocket
 transport now use the same Session operations. No Session API is exported
-outside Ivy yet.
+outside Rome yet.
 
 ## Identity and metadata
 

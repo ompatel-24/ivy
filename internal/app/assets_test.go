@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ompatel-24/ivy/internal/server"
+	"github.com/ompatel-24/rome/internal/server"
 )
 
 func TestResolveWebAssetsUsesEmbeddedDefault(t *testing.T) {
@@ -36,13 +36,13 @@ func TestResolveWebAssetsUsesEmbeddedDefault(t *testing.T) {
 		t.Fatalf("read embedded index: %v", err)
 	}
 	if !strings.Contains(string(index), `<main id="app"`) {
-		t.Fatalf("embedded index is not the Ivy client: %q", index)
+		t.Fatalf("embedded index is not the Rome client: %q", index)
 	}
 }
 
 func TestResolveWebAssetsExplicitRootTakesPrecedence(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ivy"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("rome"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -51,7 +51,7 @@ func TestResolveWebAssetsExplicitRootTakesPrecedence(t *testing.T) {
 		t.Fatalf("resolveWebAssets(): %v", err)
 	}
 	data, err := fs.ReadFile(assets, "index.html")
-	if err != nil || string(data) != "ivy" {
+	if err != nil || string(data) != "rome" {
 		t.Fatalf("resolved index = (%q, %v)", data, err)
 	}
 }

@@ -1,4 +1,4 @@
-// Package command parses Ivy's small command-line surface without interpreting
+// Package command parses Rome's small command-line surface without interpreting
 // arguments intended for the child process.
 package command
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-// Action identifies what Ivy should do with a parsed invocation.
+// Action identifies what Rome should do with a parsed invocation.
 type Action uint8
 
 const (
@@ -16,16 +16,16 @@ const (
 	ActionVersion
 )
 
-// Invocation is the result of parsing Ivy's command-line arguments.
+// Invocation is the result of parsing Rome's command-line arguments.
 type Invocation struct {
 	Action Action
 	Args   []string
 }
 
-// ErrMissingCommand reports that Ivy was invoked without a child command.
+// ErrMissingCommand reports that Rome was invoked without a child command.
 var ErrMissingCommand = errors.New("missing command")
 
-// Parse separates Ivy's built-in commands from an arbitrary child argv.
+// Parse separates Rome's built-in commands from an arbitrary child argv.
 func Parse(args []string) (Invocation, error) {
 	if len(args) == 0 {
 		return Invocation{}, ErrMissingCommand

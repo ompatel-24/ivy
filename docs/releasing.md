@@ -1,19 +1,29 @@
-# Releasing Ivy
+# Releasing Rome
 
-Ivy releases are tag-driven and may be created only from commits already on
+Rome releases are tag-driven and may be created only from commits already on
 `main`. There is intentionally no local Make target that publishes a release.
 
-## One-time repository setup
+## Rename and repository setup
 
-1. Create the public `ompatel-24/homebrew-tap` repository with `main` as its
-   default branch and add a short README.
-2. Create a fine-grained GitHub token restricted to that repository with only
+After the rename pull request merges, rename the GitHub repository from `ivy`
+to `rome` before tagging. Keep the existing `v0.1.0` tag intact; GitHub's
+repository redirect preserves old clone and release URLs. Update local clones
+with:
+
+```bash
+git remote set-url origin https://github.com/ompatel-24/rome.git
+```
+
+The public `ompatel-24/homebrew-tap` repository must use `main` as its default
+branch. For formula publishing:
+
+1. Create a fine-grained GitHub token restricted to that repository with only
    **Contents: read and write** access.
-3. Add it to the Ivy repository as the Actions secret
-   `HOMEBREW_TAP_TOKEN`. Never use this token as Ivy's release token or expose
+2. Add it to the Rome repository as the Actions secret
+   `HOMEBREW_TAP_TOKEN`. Never use this token as Rome's release token or expose
    it in shell history, logs, issues, or pull requests.
 
-The release workflow uses its scoped built-in `GITHUB_TOKEN` for the Ivy
+The release workflow uses its scoped built-in `GITHUB_TOKEN` for the Rome
 release. The separate token is passed only to GoReleaser's Homebrew formula
 publisher because GitHub's repository token cannot write to another
 repository.
@@ -37,20 +47,22 @@ timestamps are normalized so rebuilding the same commit produces the same
 archive bytes.
 
 GoReleaser 2.17 marks its traditional `brews` publisher as deprecated and its
-`check` command exits nonzero for any deprecated block. Ivy intentionally uses
+`check` command exits nonzero for any deprecated block. Rome intentionally uses
 that still-supported publisher for this tap-only formula rather than an
 unsigned cask. `make release-check` accepts only that single documented
 deprecation; any other deprecation or configuration error still fails, and the
 snapshot performs a complete configuration load and build.
 
-Before tagging, confirm that CI succeeded on the merge commit and that
-`HOMEBREW_TAP_TOKEN` exists. The first release uses an annotated tag:
+Before tagging, confirm that the repository is named `rome`, CI succeeded on
+the merge commit, and `HOMEBREW_TAP_TOKEN` exists. The first Rome-branded
+release uses a new annotated tag; never move or reuse the published `v0.1.0`
+tag:
 
 ```bash
 git switch main
 git pull --ff-only origin main
-git tag -a v0.1.0 -m "Ivy v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "Rome v0.2.0"
+git push origin v0.2.0
 ```
 
 The workflow rejects lightweight tags, non-semantic tags, tags outside `main`,
@@ -64,19 +76,24 @@ If either step fails, the release remains a draft.
 Download all five files from the GitHub release and verify them:
 
 ```bash
-shasum -a 256 -c ivy_0.1.0_checksums.txt
-gh attestation verify ivy_0.1.0_darwin_arm64.tar.gz --repo ompatel-24/ivy
-gh attestation verify ivy_0.1.0_checksums.txt --repo ompatel-24/ivy
+shasum -a 256 -c rome_0.2.0_checksums.txt
+gh attestation verify rome_0.2.0_darwin_arm64.tar.gz --repo ompatel-24/rome
+gh attestation verify rome_0.2.0_checksums.txt --repo ompatel-24/rome
 ```
 
 Repeat attestation verification for every archive. On an Apple Silicon Mac:
 
 ```bash
-brew install ompatel-24/tap/ivy
-ivy version
-brew test ivy
-brew uninstall ivy
+brew install ompatel-24/tap/rome
+rome version
+brew test rome
+brew uninstall rome
 ```
+
+After the Rome formula is verified, remove or deprecate the old `Formula/ivy.rb`
+in `ompatel-24/homebrew-tap`. Existing 0.1.0 users must explicitly uninstall
+the old formula and install `ompatel-24/tap/rome`; Homebrew cannot infer a
+cross-formula rename from the binary change.
 
 Record any unavailable target platform honestly rather than claiming it was
 executed.

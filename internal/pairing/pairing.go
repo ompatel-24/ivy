@@ -1,4 +1,4 @@
-// Package pairing creates the local terminal handoff for Ivy's authenticated
+// Package pairing creates the local terminal handoff for Rome's authenticated
 // browser Session. Pairing URLs are credentials and must never be logged.
 package pairing
 
@@ -11,7 +11,7 @@ import (
 
 const (
 	quietZoneModules = 4
-	pairingTitle     = "🌿 Ivy — scan to connect"
+	pairingTitle     = "🌿 Rome — scan to connect"
 )
 
 // Options describes whether the local output can display a QR code.
@@ -30,7 +30,7 @@ func Format(connectionURL string, options Options) (string, error) {
 type encoder func(string) ([][]bool, error)
 
 func format(connectionURL string, options Options, encodeQR encoder) (string, error) {
-	fallback := fmt.Sprintf("ivy: transport %s\n", connectionURL)
+	fallback := fmt.Sprintf("rome: transport %s\n", connectionURL)
 	if !options.Interactive || strings.EqualFold(strings.TrimSpace(options.Term), "dumb") {
 		return fallback, nil
 	}

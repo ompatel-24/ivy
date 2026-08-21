@@ -1,13 +1,13 @@
 # Security model
 
-Ivy transports terminal input and output and therefore grants the equivalent of
+Rome transports terminal input and output and therefore grants the equivalent of
 interactive access to the child process. Treat every Session credential as a
 shell-access secret.
 
 ## Local transport boundary
 
-Networking is off by default. `IVY_LISTEN` must name one concrete loopback or
-LAN interface; Ivy rejects empty and wildcard hosts rather than silently
+Networking is off by default. `ROME_LISTEN` must name one concrete loopback or
+LAN interface; Rome rejects empty and wildcard hosts rather than silently
 binding to every interface. The listener is created before the child starts so
 an unsafe or unavailable address fails closed.
 
@@ -18,10 +18,10 @@ authentication is limited to ten attempts per remote IP per minute with a
 bounded in-memory table.
 
 The token is intentionally displayed once to the controlling local terminal in
-a URL fragment. Fragments are not sent in HTTP requests. Ivy never puts the
+a URL fragment. Fragments are not sent in HTTP requests. Rome never puts the
 token in a query string, request log, debug output, analytics, or HTTP response.
 Metadata requests use a Bearer header; browser-compatible WebSockets use the
-`ivy.auth.<token>` subprotocol alongside `ivy.v1`.
+`rome.auth.<token>` subprotocol alongside `rome.v1`.
 
 The Milestone 4 browser stores the token in per-tab `sessionStorage`, removes it
 from the visible URL, and clears it after exit, authentication failure, or an
@@ -33,7 +33,7 @@ Milestone 5 renders that same authenticated URL as a QR code in the controlling
 terminal. The QR is a visual representation of the session-long bearer token,
 not a one-time exchange. Anyone who scans or photographs it while the Session
 is running can control the terminal, so treat terminal scrollback and QR
-screenshots as credentials. Ivy retains only the token digest and does not log
+screenshots as credentials. Rome retains only the token digest and does not log
 the QR payload.
 
 WebSockets enforce same-origin checks, HTTP responses do not enable CORS, input
@@ -42,7 +42,7 @@ argument vector. A client disconnect or protocol violation never terminates the
 child Session.
 
 The static client is served only for the current routing ID. Production assets
-come from Ivy's embedded, build-verified filesystem. `IVY_WEB_DIR` can replace
+come from Rome's embedded, build-verified filesystem. `ROME_WEB_DIR` can replace
 that filesystem explicitly for development, so users of the override are
 responsible for trusting its contents. In either mode, only exact files are
 served: directory listings and traversal are not supported. Browser responses
@@ -73,16 +73,16 @@ for every platform archive and the checksum manifest. Verify both before
 installing a downloaded binary:
 
 ```bash
-shasum -a 256 -c ivy_0.1.0_checksums.txt
-gh attestation verify ivy_0.1.0_darwin_arm64.tar.gz --repo ompatel-24/ivy
+shasum -a 256 -c rome_0.2.0_checksums.txt
+gh attestation verify rome_0.2.0_darwin_arm64.tar.gz --repo ompatel-24/rome
 ```
 
-The release workflow uses the repository-scoped `GITHUB_TOKEN` only for Ivy's
+The release workflow uses the repository-scoped `GITHUB_TOKEN` only for Rome's
 GitHub release. Homebrew formula publishing uses a separate fine-grained token
 restricted to `ompatel-24/homebrew-tap` with Contents read/write access. It is
 passed only to the formula publisher and must never appear in repository files,
 logs, issues, or support output.
 
-Ivy's macOS binaries are currently unsigned. The project publishes a Homebrew
+Rome's macOS binaries are currently unsigned. The project publishes a Homebrew
 formula rather than a cask to avoid presenting an unsigned app bundle as a
 signed distribution. Apple signing and additional packaging are deferred.

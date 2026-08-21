@@ -1,4 +1,4 @@
-// Package webassets provides Ivy's embedded production browser client.
+// Package webassets provides Rome's embedded production browser client.
 package webassets
 
 import (
@@ -15,7 +15,7 @@ var embedded embed.FS
 func FS() fs.FS {
 	assets, err := fs.Sub(embedded, "dist")
 	if err != nil {
-		panic("ivy: invalid embedded web asset root: " + err.Error())
+		panic("rome: invalid embedded web asset root: " + err.Error())
 	}
 	return assets
 }

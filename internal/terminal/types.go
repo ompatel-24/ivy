@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ompatel-24/ivy/internal/session"
+	"github.com/ompatel-24/rome/internal/session"
 )
 
 const (
@@ -30,11 +30,11 @@ type Runner struct {
 	Debug       bool
 }
 
-// RunError is an Ivy failure carrying the shell-compatible exit code that the
+// RunError is an Rome failure carrying the shell-compatible exit code that the
 // CLI should return.
 type RunError = session.RunError
 
-// ErrorCode extracts a CLI exit code from an Ivy runtime error.
+// ErrorCode extracts a CLI exit code from an Rome runtime error.
 func ErrorCode(err error) int {
 	return session.ErrorCode(err)
 }
@@ -43,5 +43,5 @@ func (r Runner) debugf(format string, args ...any) {
 	if !r.Debug || r.Stderr == nil {
 		return
 	}
-	fmt.Fprintf(r.Stderr, "ivy: debug: "+format+"\n", args...)
+	fmt.Fprintf(r.Stderr, "rome: debug: "+format+"\n", args...)
 }

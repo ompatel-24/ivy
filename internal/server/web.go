@@ -18,7 +18,7 @@ const (
 var webAssetReferencePattern = regexp.MustCompile(`(?:src|href)=["'](/assets/[^"'?#]+)["']`)
 
 // ValidateWebAssets verifies the minimum filesystem contract required by the
-// mobile client before Ivy starts a child process.
+// mobile client before Rome starts a child process.
 func ValidateWebAssets(web fs.FS) error {
 	if web == nil {
 		return fmt.Errorf("web assets are unavailable")

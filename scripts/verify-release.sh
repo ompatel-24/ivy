@@ -8,8 +8,8 @@ fi
 
 version=$1
 release_dir=${DIST_DIR:-dist}
-checksum_file="ivy_${version}_checksums.txt"
-formula_file="${release_dir}/homebrew/Formula/ivy.rb"
+checksum_file="rome_${version}_checksums.txt"
+formula_file="${release_dir}/homebrew/Formula/rome.rb"
 platforms=(
   darwin_amd64
   darwin_arm64
@@ -37,7 +37,7 @@ extract_dir=$(mktemp -d)
 trap 'rm -f "$expected_manifest" "$actual_manifest" "$expected_artifacts" "$actual_artifacts" "$expected_contents" "$actual_contents"; rm -rf "$extract_dir"' EXIT
 
 for platform in "${platforms[@]}"; do
-  archive="ivy_${version}_${platform}.tar.gz"
+  archive="rome_${version}_${platform}.tar.gz"
   archive_path="${release_dir}/${archive}"
 
   if [[ ! -f "$archive_path" ]]; then
@@ -52,7 +52,7 @@ for platform in "${platforms[@]}"; do
 
   printf '%s\n' "$archive" >>"$expected_manifest"
   printf '%s\n' "$archive" >>"$expected_artifacts"
-  printf '%s\n' LICENSE README.md ivy | LC_ALL=C sort >"$expected_contents"
+  printf '%s\n' LICENSE README.md rome | LC_ALL=C sort >"$expected_contents"
   tar -tzf "$archive_path" | sed 's#^\./##' | LC_ALL=C sort >"$actual_contents"
   if ! cmp -s "$expected_contents" "$actual_contents"; then
     echo "unexpected contents in $archive:" >&2
@@ -61,14 +61,14 @@ for platform in "${platforms[@]}"; do
   fi
 done
 
-if ! grep -Fq 'class Ivy < Formula' "$formula_file" ||
-  ! grep -Fq 'assert_match version.to_s, shell_output("#{bin}/ivy version")' "$formula_file"; then
-  echo "generated Homebrew formula is missing Ivy's class or version test" >&2
+if ! grep -Fq 'class Rome < Formula' "$formula_file" ||
+  ! grep -Fq 'assert_match version.to_s, shell_output("#{bin}/rome version")' "$formula_file"; then
+  echo "generated Homebrew formula is missing Rome's class or version test" >&2
   exit 1
 fi
 
 printf '%s\n' "$checksum_file" >>"$expected_artifacts"
-find "$release_dir" -maxdepth 1 -type f \( -name 'ivy_*.tar.gz' -o -name 'ivy_*_checksums.txt' \) \
+find "$release_dir" -maxdepth 1 -type f \( -name 'rome_*.tar.gz' -o -name 'rome_*_checksums.txt' \) \
   -exec basename {} \; | LC_ALL=C sort >"$actual_artifacts"
 LC_ALL=C sort -o "$expected_artifacts" "$expected_artifacts"
 if ! cmp -s "$expected_artifacts" "$actual_artifacts"; then
@@ -112,13 +112,13 @@ case "$(uname -m)" in
     ;;
 esac
 
-native_archive="${release_dir}/ivy_${version}_${native_os}_${native_arch}.tar.gz"
+native_archive="${release_dir}/rome_${version}_${native_os}_${native_arch}.tar.gz"
 tar -xzf "$native_archive" -C "$extract_dir"
-actual_version=$("${extract_dir}/ivy" version)
-expected_version="ivy ${version}"
+actual_version=$("${extract_dir}/rome" version)
+expected_version="rome ${version}"
 if [[ "$actual_version" != "$expected_version" ]]; then
   printf 'native archive version = %q, want %q\n' "$actual_version" "$expected_version" >&2
   exit 1
 fi
 
-echo "verified Ivy ${version} release artifacts"
+echo "verified Rome ${version} release artifacts"

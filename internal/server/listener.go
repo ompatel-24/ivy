@@ -9,21 +9,21 @@ import (
 )
 
 // Listen validates that address names one concrete local interface before
-// binding it. Ivy never silently listens on every interface.
+// binding it. Rome never silently listens on every interface.
 func Listen(address string) (net.Listener, error) {
 	host, portText, err := net.SplitHostPort(address)
 	if err != nil {
-		return nil, fmt.Errorf("invalid IVY_LISTEN address %q: %w", address, err)
+		return nil, fmt.Errorf("invalid ROME_LISTEN address %q: %w", address, err)
 	}
 	if host == "" {
-		return nil, fmt.Errorf("invalid IVY_LISTEN address %q: host is required", address)
+		return nil, fmt.Errorf("invalid ROME_LISTEN address %q: host is required", address)
 	}
 	port, err := strconv.Atoi(portText)
 	if err != nil || port < 0 || port > 65535 {
-		return nil, fmt.Errorf("invalid IVY_LISTEN address %q: port must be between 0 and 65535", address)
+		return nil, fmt.Errorf("invalid ROME_LISTEN address %q: port must be between 0 and 65535", address)
 	}
 	if isUnspecifiedHost(host) {
-		return nil, fmt.Errorf("invalid IVY_LISTEN address %q: wildcard hosts are not allowed", address)
+		return nil, fmt.Errorf("invalid ROME_LISTEN address %q: wildcard hosts are not allowed", address)
 	}
 
 	listener, err := net.Listen("tcp", address)
@@ -33,7 +33,7 @@ func Listen(address string) (net.Listener, error) {
 	tcpAddress, ok := listener.Addr().(*net.TCPAddr)
 	if !ok || tcpAddress.IP == nil || tcpAddress.IP.IsUnspecified() {
 		_ = listener.Close()
-		return nil, fmt.Errorf("invalid IVY_LISTEN address %q: address did not resolve to a concrete interface", address)
+		return nil, fmt.Errorf("invalid ROME_LISTEN address %q: address did not resolve to a concrete interface", address)
 	}
 	return listener, nil
 }

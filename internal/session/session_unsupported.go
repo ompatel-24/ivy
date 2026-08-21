@@ -9,7 +9,7 @@ import (
 )
 
 func start(_ context.Context, _ []string, _ StartOptions, _ normalizedOptions) (*Session, error) {
-	return nil, &RunError{Code: 1, Message: "this Ivy milestone supports only macOS and Linux"}
+	return nil, &RunError{Code: 1, Message: "this Rome milestone supports only macOS and Linux"}
 }
 
 func (s *Session) Write(_ []byte) (int, error) {
@@ -28,5 +28,5 @@ func (s *Session) Close() error {
 	if s == nil {
 		return nil
 	}
-	return errors.New("this Ivy milestone supports only macOS and Linux")
+	return errors.New("this Rome milestone supports only macOS and Linux")
 }

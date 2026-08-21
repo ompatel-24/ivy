@@ -1,6 +1,6 @@
 export const protocolVersion = 1;
-export const websocketProtocol = "ivy.v1";
-export const authenticationPrefix = "ivy.auth.";
+export const websocketProtocol = "rome.v1";
+export const authenticationPrefix = "rome.auth.";
 
 export interface SessionMetadata {
   id: string;

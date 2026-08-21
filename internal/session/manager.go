@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// Manager stores sessions in memory for the lifetime of the Ivy process.
+// Manager stores sessions in memory for the lifetime of the Rome process.
 type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session

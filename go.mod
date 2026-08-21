@@ -1,4 +1,4 @@
-module github.com/ompatel-24/ivy
+module github.com/ompatel-24/rome
 
 go 1.23.0
 

@@ -1,13 +1,13 @@
-# Ivy transport protocol v1
+# Rome transport protocol v1
 
-Ivy exposes an authenticated HTTP/WebSocket transport when
-`IVY_LISTEN=<host:port>` is set. The protocol is agent-agnostic: terminal bytes
+Rome exposes an authenticated HTTP/WebSocket transport when
+`ROME_LISTEN=<host:port>` is set. The protocol is agent-agnostic: terminal bytes
 are never parsed for Claude, Codex, or any other program. Milestone 6 embeds the
 browser client without changing QR pairing, helper keys, or protocol version 1.
 
 ## Discovery and authentication
 
-Before entering raw mode, Ivy prints a compact QR code and the corresponding
+Before entering raw mode, Rome prints a compact QR code and the corresponding
 URL to an interactive terminal:
 
 ```text
@@ -28,8 +28,8 @@ Routes:
 - `GET /api/v1/sessions/{id}` requires `Authorization: Bearer <token>`.
 - `GET /api/v1/sessions/{id}/ws` is the WebSocket endpoint.
 
-The WebSocket client must offer both `ivy.v1` and `ivy.auth.<token>` in
-`Sec-WebSocket-Protocol`; the server selects `ivy.v1`. Authentication tokens
+The WebSocket client must offer both `rome.v1` and `rome.auth.<token>` in
+`Sec-WebSocket-Protocol`; the server selects `rome.v1`. Authentication tokens
 must not be placed in query parameters. Cross-origin WebSockets are rejected;
 future browser clients must be served from the same origin.
 
@@ -86,7 +86,7 @@ state before a replay so history is not duplicated on screen.
 The client reads the token from the fragment, stores it only in
 `sessionStorage` under the Session ID, and removes the fragment from the address
 bar. Reloading the same tab can reconnect; closing the tab removes the browser's
-session storage. Ivy clears the stored token after child exit, authentication
+session storage. Rome clears the stored token after child exit, authentication
 failure, or an unknown Session. It never uses cookies or local storage.
 
 Before opening a WebSocket, the client authenticates to the metadata endpoint.

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ompatel-24/ivy/internal/server"
-	"github.com/ompatel-24/ivy/internal/webassets"
+	"github.com/ompatel-24/rome/internal/server"
+	"github.com/ompatel-24/rome/internal/webassets"
 )
 
 var assetReferencePattern = regexp.MustCompile(`(?:src|href)=["'](/assets/[^"'?#]+)["']`)

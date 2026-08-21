@@ -14,7 +14,7 @@ fi
 cat "$check_output"
 sed $'s/\033\[[0-9;]*m//g' "$check_output" >"$check_plain"
 
-# GoReleaser 2.17 makes `check` fail for every deprecated block. Ivy
+# GoReleaser 2.17 makes `check` fail for every deprecated block. Rome
 # intentionally uses the still-supported `brews` publisher because Milestone 7
 # requires a traditional formula rather than an unsigned cask. Accept only that
 # one known deprecation; syntax errors, other deprecations, and invalid fields

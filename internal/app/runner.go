@@ -1,4 +1,4 @@
-// Package app coordinates Ivy's local terminal, Session, and optional network
+// Package app coordinates Rome's local terminal, Session, and optional network
 // transport lifecycles.
 package app
 
@@ -11,10 +11,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/ompatel-24/ivy/internal/pairing"
-	"github.com/ompatel-24/ivy/internal/server"
-	"github.com/ompatel-24/ivy/internal/session"
-	"github.com/ompatel-24/ivy/internal/terminal"
+	"github.com/ompatel-24/rome/internal/pairing"
+	"github.com/ompatel-24/rome/internal/server"
+	"github.com/ompatel-24/rome/internal/session"
+	"github.com/ompatel-24/rome/internal/terminal"
 	"golang.org/x/term"
 )
 

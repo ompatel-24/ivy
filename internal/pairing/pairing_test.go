@@ -39,7 +39,7 @@ func TestFormatFallbacksDoNotEncode(t *testing.T) {
 				called = true
 				return nil, errors.New("must not encode")
 			})
-			if err != nil || called || output != "ivy: transport "+testURL+"\n" {
+			if err != nil || called || output != "rome: transport "+testURL+"\n" {
 				t.Fatalf("format() = (%q, %v), called=%t", output, err, called)
 			}
 		})
@@ -50,7 +50,7 @@ func TestFormatFallsBackWhenTerminalIsNarrow(t *testing.T) {
 	output, err := format(testURL, Options{Interactive: true, Columns: 8, Term: "xterm-256color"}, func(string) ([][]bool, error) {
 		return [][]bool{{true}}, nil
 	})
-	if err != nil || output != "ivy: transport "+testURL+"\n" {
+	if err != nil || output != "rome: transport "+testURL+"\n" {
 		t.Fatalf("format() = (%q, %v)", output, err)
 	}
 }
@@ -97,7 +97,7 @@ func TestFormatRejectsInvalidBitmap(t *testing.T) {
 }
 
 func TestQRCodeDependencyDebugCannotLeakPairingData(t *testing.T) {
-	if os.Getenv("IVY_QR_DEBUG_TEST_HELPER") == "1" {
+	if os.Getenv("ROME_QR_DEBUG_TEST_HELPER") == "1" {
 		if got := os.Getenv("QRCODE_DEBUG"); got != "1" {
 			t.Fatalf("QRCODE_DEBUG = %q, want child-visible value", got)
 		}
@@ -108,7 +108,7 @@ func TestQRCodeDependencyDebugCannotLeakPairingData(t *testing.T) {
 	}
 
 	command := exec.Command(os.Args[0], "-test.run=^TestQRCodeDependencyDebugCannotLeakPairingData$")
-	command.Env = append(os.Environ(), "IVY_QR_DEBUG_TEST_HELPER=1", "QRCODE_DEBUG=1")
+	command.Env = append(os.Environ(), "ROME_QR_DEBUG_TEST_HELPER=1", "QRCODE_DEBUG=1")
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("debug helper: %v\n%s", err, output)

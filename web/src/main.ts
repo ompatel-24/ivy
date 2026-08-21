@@ -45,8 +45,8 @@ terminal.open(terminalElement);
 const credentials = loadCredentials(window.location, window.sessionStorage, (url) => window.history.replaceState(null, "", url));
 if (!credentials) {
   setStatus("error", "Missing access token");
-  terminal.writeln("\x1b[31mIvy could not find a valid Session token.\x1b[0m");
-  terminal.writeln("Open the complete URL printed by Ivy and try again.");
+  terminal.writeln("\x1b[31mRome could not find a valid Session token.\x1b[0m");
+  terminal.writeln("Open the complete URL printed by Rome and try again.");
   fitTerminal();
 } else {
   const sizeTracker = new SizeTracker();
@@ -87,7 +87,7 @@ if (!credentials) {
           clearCredential(window.sessionStorage, credentials.sessionID);
         }
         terminal.options.disableStdin = true;
-        terminal.writeln(`\r\n\x1b[31mIvy: ${message}\x1b[0m`);
+        terminal.writeln(`\r\n\x1b[31mRome: ${message}\x1b[0m`);
       },
     },
   });
@@ -143,7 +143,7 @@ function requiredElement(id: string): HTMLElement {
 function renderMetadata(metadata: SessionMetadata): void {
   commandElement.textContent = metadata.command || "Terminal";
   directoryElement.textContent = metadata.directory;
-  document.title = `${metadata.command || "Terminal"} · Ivy`;
+  document.title = `${metadata.command || "Terminal"} · Rome`;
 }
 
 function setStatus(state: ClientState, label: string): void {
@@ -155,8 +155,8 @@ function updateViewport(): void {
   const viewport = window.visualViewport;
   const height = viewport?.height ?? window.innerHeight;
   const top = viewport?.offsetTop ?? 0;
-  document.documentElement.style.setProperty("--ivy-viewport-height", `${height}px`);
-  document.documentElement.style.setProperty("--ivy-viewport-top", `${top}px`);
+  document.documentElement.style.setProperty("--rome-viewport-height", `${height}px`);
+  document.documentElement.style.setProperty("--rome-viewport-top", `${top}px`);
 }
 
 function fitTerminal(): void {

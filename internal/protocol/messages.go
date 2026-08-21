@@ -1,4 +1,4 @@
-// Package protocol defines Ivy's versioned WebSocket control messages.
+// Package protocol defines Rome's versioned WebSocket control messages.
 // Terminal input and output remain raw binary WebSocket messages.
 package protocol
 
@@ -12,8 +12,8 @@ import (
 
 const (
 	Version         = 1
-	Subprotocol     = "ivy.v1"
-	AuthPrefix      = "ivy.auth."
+	Subprotocol     = "rome.v1"
+	AuthPrefix      = "rome.auth."
 	MaxControlBytes = 4 * 1024
 	MaxInputBytes   = 64 * 1024
 )
