@@ -7,33 +7,33 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ompatel-24/ivy/internal/app"
-	"github.com/ompatel-24/ivy/internal/command"
-	"github.com/ompatel-24/ivy/internal/terminal"
-	"github.com/ompatel-24/ivy/internal/version"
+	"github.com/ompatel-24/rome/internal/app"
+	"github.com/ompatel-24/rome/internal/command"
+	"github.com/ompatel-24/rome/internal/terminal"
+	"github.com/ompatel-24/rome/internal/version"
 )
 
-const helpText = `Ivy runs an interactive command inside a pseudo-terminal.
+const helpText = `Rome runs an interactive command inside a pseudo-terminal.
 
 Usage:
-  ivy <command> [args...]
-  ivy -- <command> [args...]
-  ivy help
-  ivy version
+  rome <command> [args...]
+  rome -- <command> [args...]
+  rome help
+  rome version
 
 The -- separator is optional. Use it to run a command named help or version,
-or whenever an explicit end to Ivy's arguments is useful.
+or whenever an explicit end to Rome's arguments is useful.
 
 Examples:
-  ivy bash
-  ivy claude
-  ivy aider --model sonnet
-  ivy -- command --with-flags
+  rome bash
+  rome claude
+  rome aider --model sonnet
+  rome -- command --with-flags
 
 Environment:
-  IVY_LISTEN=<host:port>  Enable the authenticated local transport on one
+  ROME_LISTEN=<host:port>  Enable the authenticated local transport on one
                           concrete loopback or LAN interface.
-  IVY_WEB_DIR=<path>      Override embedded mobile assets for development.
+  ROME_WEB_DIR=<path>      Override embedded mobile assets for development.
 `
 
 func main() {
@@ -43,8 +43,8 @@ func main() {
 func runCLI(ctx context.Context, args []string, stdin *os.File, stdout, stderr io.Writer) int {
 	invocation, err := command.Parse(args)
 	if err != nil {
-		fmt.Fprintf(stderr, "ivy: %s\n", err)
-		fmt.Fprintln(stderr, "Try 'ivy help' for usage.")
+		fmt.Fprintf(stderr, "rome: %s\n", err)
+		fmt.Fprintln(stderr, "Try 'rome help' for usage.")
 		return 2
 	}
 
@@ -53,27 +53,27 @@ func runCLI(ctx context.Context, args []string, stdin *os.File, stdout, stderr i
 		fmt.Fprint(stdout, helpText)
 		return 0
 	case command.ActionVersion:
-		fmt.Fprintf(stdout, "ivy %s\n", version.Value)
+		fmt.Fprintf(stdout, "rome %s\n", version.Value)
 		return 0
 	case command.ActionRun:
 		runner := app.Runner{
-			ListenAddress: os.Getenv("IVY_LISTEN"),
-			WebRoot:       os.Getenv("IVY_WEB_DIR"),
+			ListenAddress: os.Getenv("ROME_LISTEN"),
+			WebRoot:       os.Getenv("ROME_WEB_DIR"),
 			Terminal: terminal.Runner{
 				Stdin:  stdin,
 				Stdout: stdout,
 				Stderr: stderr,
-				Debug:  debugEnabled(os.Getenv("IVY_DEBUG")),
+				Debug:  debugEnabled(os.Getenv("ROME_DEBUG")),
 			},
 		}
 		result, runErr := runner.Run(ctx, invocation.Args)
 		if runErr != nil {
-			fmt.Fprintf(stderr, "ivy: %s\n", runErr)
+			fmt.Fprintf(stderr, "rome: %s\n", runErr)
 			return terminal.ErrorCode(runErr)
 		}
 		return result.ExitCode
 	default:
-		fmt.Fprintln(stderr, "ivy: internal error: unknown command action")
+		fmt.Fprintln(stderr, "rome: internal error: unknown command action")
 		return 1
 	}
 }

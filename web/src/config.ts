@@ -15,7 +15,7 @@ export function sessionIDFromPath(pathname: string): string | null {
 }
 
 export function credentialStorageKey(sessionID: string): string {
-  return `ivy.session.${sessionID}.token`;
+  return `rome.session.${sessionID}.token`;
 }
 
 export function loadCredentials(

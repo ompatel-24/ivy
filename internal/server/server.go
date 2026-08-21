@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/ompatel-24/ivy/internal/protocol"
-	"github.com/ompatel-24/ivy/internal/session"
+	"github.com/ompatel-24/rome/internal/protocol"
+	"github.com/ompatel-24/rome/internal/session"
 )
 
 const (
@@ -154,7 +154,7 @@ func (s *Server) authorize(w http.ResponseWriter, request *http.Request, session
 	}
 	if !s.credential.matches(token) {
 		s.limiter.failed(request.RemoteAddr)
-		w.Header().Set("WWW-Authenticate", `Bearer realm="ivy"`)
+		w.Header().Set("WWW-Authenticate", `Bearer realm="rome"`)
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return nil, false
 	}

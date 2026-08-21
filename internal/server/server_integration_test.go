@@ -23,14 +23,14 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/creack/pty"
-	"github.com/ompatel-24/ivy/internal/protocol"
-	"github.com/ompatel-24/ivy/internal/session"
+	"github.com/ompatel-24/rome/internal/protocol"
+	"github.com/ompatel-24/rome/internal/session"
 )
 
 const testToken = "test-token-that-is-never-written-by-the-server"
 
 func TestServerHelperProcess(t *testing.T) {
-	mode := os.Getenv("IVY_SERVER_TEST_HELPER")
+	mode := os.Getenv("ROME_SERVER_TEST_HELPER")
 	if mode == "" {
 		return
 	}
@@ -136,7 +136,7 @@ func TestWebClientRoutesAndSecurityHeaders(t *testing.T) {
 
 	response := httpRequest(t, http.MethodGet, transport.baseURL+"/s/"+transport.id, "")
 	body := readBody(t, response)
-	if response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Ivy test client")) {
+	if response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Rome test client")) {
 		t.Fatalf("session page = (%d, %q)", response.StatusCode, body)
 	}
 	for _, header := range []string{"Content-Security-Policy", "Referrer-Policy", "X-Content-Type-Options", "X-Frame-Options"} {
@@ -150,7 +150,7 @@ func TestWebClientRoutesAndSecurityHeaders(t *testing.T) {
 
 	response = httpRequest(t, http.MethodGet, transport.baseURL+"/assets/app.js", "")
 	asset := readBody(t, response)
-	if response.StatusCode != http.StatusOK || !bytes.Equal(asset, []byte("console.log('ivy')")) {
+	if response.StatusCode != http.StatusOK || !bytes.Equal(asset, []byte("console.log('rome')")) {
 		t.Fatalf("web asset = (%d, %q)", response.StatusCode, asset)
 	}
 	if contentType := response.Header.Get("Content-Type"); !strings.Contains(contentType, "javascript") {
@@ -161,7 +161,7 @@ func TestWebClientRoutesAndSecurityHeaders(t *testing.T) {
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("unknown Session page status = %d", response.StatusCode)
 	}
-	if body := readBody(t, response); !bytes.Contains(body, []byte("Ivy test client")) {
+	if body := readBody(t, response); !bytes.Contains(body, []byte("Rome test client")) {
 		t.Fatalf("unknown Session page did not render the safe client shell: %q", body)
 	}
 
@@ -444,7 +444,7 @@ func startTestTransport(t *testing.T, mode string, options session.ManagerOption
 
 func startTestTransportWithHook(t *testing.T, mode string, options session.ManagerOptions, beforeServe func(*Server)) *testTransport {
 	t.Helper()
-	t.Setenv("IVY_SERVER_TEST_HELPER", mode)
+	t.Setenv("ROME_SERVER_TEST_HELPER", mode)
 	if options.GracePeriod == 0 {
 		options.GracePeriod = 100 * time.Millisecond
 	}
@@ -496,8 +496,8 @@ func startTestTransportWithHook(t *testing.T, mode string, options session.Manag
 
 func testWebAssets() fstest.MapFS {
 	return fstest.MapFS{
-		"index.html":    &fstest.MapFile{Data: []byte(`<!doctype html><title>Ivy test client</title><script src="/assets/app.js"></script>`)},
-		"assets/app.js": &fstest.MapFile{Data: []byte("console.log('ivy')")},
+		"index.html":    &fstest.MapFile{Data: []byte(`<!doctype html><title>Rome test client</title><script src="/assets/app.js"></script>`)},
+		"assets/app.js": &fstest.MapFile{Data: []byte("console.log('rome')")},
 	}
 }
 

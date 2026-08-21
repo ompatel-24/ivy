@@ -55,7 +55,7 @@ type Result struct {
 	ExitCode int
 }
 
-// RunError is an Ivy failure carrying the shell-compatible exit code that the
+// RunError is an Rome failure carrying the shell-compatible exit code that the
 // CLI should return.
 type RunError struct {
 	Code    int
@@ -77,7 +77,7 @@ func (e *RunError) Unwrap() error {
 	return e.Err
 }
 
-// ErrorCode extracts a CLI exit code from an Ivy runtime error.
+// ErrorCode extracts a CLI exit code from an Rome runtime error.
 func ErrorCode(err error) int {
 	var runErr *RunError
 	if errors.As(err, &runErr) && runErr.Code > 0 {

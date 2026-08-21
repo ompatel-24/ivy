@@ -6,6 +6,10 @@ const token = "jcuFWqzjZ0GJ469zo6tvp5kpKlptRfxGif6SWPiqzPM";
 describe("session credentials", () => {
   beforeEach(() => sessionStorage.clear());
 
+  it("uses a Rome-scoped per-session storage key", () => {
+    expect(credentialStorageKey(sessionID)).toBe(`rome.session.${sessionID}.token`);
+  });
+
   it("extracts a fragment token, stores it per tab, and removes the fragment", () => {
     const replaceURL = vi.fn();
     const credentials = loadCredentials(

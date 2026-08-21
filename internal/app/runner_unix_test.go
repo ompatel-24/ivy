@@ -21,14 +21,14 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/ompatel-24/ivy/internal/pairing"
-	"github.com/ompatel-24/ivy/internal/protocol"
-	"github.com/ompatel-24/ivy/internal/server"
-	"github.com/ompatel-24/ivy/internal/terminal"
+	"github.com/ompatel-24/rome/internal/pairing"
+	"github.com/ompatel-24/rome/internal/protocol"
+	"github.com/ompatel-24/rome/internal/server"
+	"github.com/ompatel-24/rome/internal/terminal"
 )
 
 func TestAppHelperProcess(t *testing.T) {
-	if os.Getenv("IVY_APP_TEST_HELPER") == "" {
+	if os.Getenv("ROME_APP_TEST_HELPER") == "" {
 		return
 	}
 	scanner := bufio.NewScanner(os.Stdin)
@@ -68,7 +68,7 @@ func TestRunnerWithoutListenAddressStaysQuiet(t *testing.T) {
 }
 
 func TestRunnerFormatsPairingBeforeTerminalOutput(t *testing.T) {
-	t.Setenv("IVY_APP_TEST_HELPER", "1")
+	t.Setenv("ROME_APP_TEST_HELPER", "1")
 	t.Setenv("TERM", "xterm-256color")
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
@@ -150,7 +150,7 @@ func TestRunnerStopsChildWhenPairingGenerationFails(t *testing.T) {
 }
 
 func TestRunnerTransportEndToEnd(t *testing.T) {
-	t.Setenv("IVY_APP_TEST_HELPER", "1")
+	t.Setenv("ROME_APP_TEST_HELPER", "1")
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -290,7 +290,7 @@ func TestRunnerStopsSessionWhenTransportFailsUnexpectedly(t *testing.T) {
 	if elapsed := time.Since(started); elapsed > 3*time.Second {
 		t.Fatalf("Runner.Run() took %s after transport failure", elapsed)
 	}
-	if !strings.Contains(stderr.String(), "ivy: transport http://") {
+	if !strings.Contains(stderr.String(), "rome: transport http://") {
 		t.Fatalf("transport failed before the child was launched: stderr=%q", stderr.String())
 	}
 }
@@ -312,7 +312,7 @@ func TestRunnerRejectsMissingWebAssetsBeforeLaunchingCommand(t *testing.T) {
 		Terminal:      terminal.Runner{Stdin: stdin, Stdout: &stdout, Stderr: &stderr},
 	}
 
-	_, runErr := runner.Run(context.Background(), []string{"ivy-command-that-must-not-launch"})
+	_, runErr := runner.Run(context.Background(), []string{"rome-command-that-must-not-launch"})
 	if runErr == nil || terminal.ErrorCode(runErr) != 1 || !strings.Contains(runErr.Error(), "failed to load mobile client") {
 		t.Fatalf("Runner.Run() error = %v, want mobile-client asset failure", runErr)
 	}
@@ -327,10 +327,10 @@ func testWebRoot(t *testing.T) string {
 	if err := os.Mkdir(filepath.Join(root, "assets"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte(`<!doctype html><title>Ivy test</title><script src="/assets/app.js"></script>`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte(`<!doctype html><title>Rome test</title><script src="/assets/app.js"></script>`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "assets", "app.js"), []byte("console.log('ivy')"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "assets", "app.js"), []byte("console.log('rome')"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -343,7 +343,7 @@ func waitForConnectionURL(t *testing.T, buffer *lockedBuffer) string {
 		output := buffer.String()
 		if newline := strings.IndexByte(output, '\n'); newline >= 0 {
 			line := output[:newline]
-			const prefix = "ivy: transport "
+			const prefix = "rome: transport "
 			if !strings.HasPrefix(line, prefix) {
 				t.Fatalf("transport banner = %q", line)
 			}

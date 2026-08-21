@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/coder/websocket"
-	"github.com/ompatel-24/ivy/internal/protocol"
-	"github.com/ompatel-24/ivy/internal/session"
+	"github.com/ompatel-24/rome/internal/protocol"
+	"github.com/ompatel-24/rome/internal/session"
 )
 
 type clientReadError struct {
@@ -27,7 +27,7 @@ func (e *clientReadError) Error() string {
 func (s *Server) handleWebSocket(w http.ResponseWriter, request *http.Request) {
 	protocols := requestedSubprotocols(request.Header.Values("Sec-WebSocket-Protocol"))
 	if !containsProtocol(protocols, protocol.Subprotocol) {
-		http.Error(w, "required WebSocket subprotocol ivy.v1 was not offered", http.StatusBadRequest)
+		http.Error(w, "required WebSocket subprotocol rome.v1 was not offered", http.StatusBadRequest)
 		return
 	}
 	token, ok := authenticationSubprotocol(protocols)
@@ -112,7 +112,7 @@ func (s *Server) serveWebSocket(connection *websocket.Conn, managed *session.Ses
 			}
 			result, waitErr := managed.Wait()
 			if waitErr != nil {
-				_ = s.writeJSON(ctx, connection, protocol.NewError("session_failure", "session ended with an Ivy error"))
+				_ = s.writeJSON(ctx, connection, protocol.NewError("session_failure", "session ended with an Rome error"))
 			}
 			if err := s.writeJSON(ctx, connection, protocol.NewExit(result.ExitCode)); err != nil {
 				return

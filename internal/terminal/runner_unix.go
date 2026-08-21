@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	"github.com/ompatel-24/ivy/internal/session"
+	"github.com/ompatel-24/rome/internal/session"
 	"golang.org/x/term"
 )
 
@@ -148,7 +148,7 @@ func (r Runner) Attach(ctx context.Context, managed *session.Session) (result Re
 		sessionEnded bool
 		outputEnded  bool
 		inputEnded   bool
-		ivyErr       error
+		romeErr      error
 		contextDone  = ctx.Done()
 	)
 
@@ -184,8 +184,8 @@ func (r Runner) Attach(ctx context.Context, managed *session.Session) (result Re
 			inputEnded = true
 			inputDone = nil
 			if inputErr != nil && !errors.Is(inputErr, context.Canceled) && !isExpectedCloseError(inputErr) {
-				if ivyErr == nil {
-					ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to read terminal input: %v", inputErr), Err: inputErr}
+				if romeErr == nil {
+					romeErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to read terminal input: %v", inputErr), Err: inputErr}
 				}
 				if !sessionEnded {
 					_ = managed.Signal(syscall.SIGHUP)
@@ -195,8 +195,8 @@ func (r Runner) Attach(ctx context.Context, managed *session.Session) (result Re
 		case outputErr := <-outputDone:
 			outputEnded = true
 			outputDone = nil
-			if outputErr != nil && ivyErr == nil {
-				ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to stream terminal output: %v", outputErr), Err: outputErr}
+			if outputErr != nil && romeErr == nil {
+				romeErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to stream terminal output: %v", outputErr), Err: outputErr}
 				if !sessionEnded {
 					_ = managed.Signal(syscall.SIGHUP)
 				}
@@ -212,19 +212,19 @@ func (r Runner) Attach(ctx context.Context, managed *session.Session) (result Re
 	if !inputEnded {
 		select {
 		case inputErr := <-inputDone:
-			if inputErr != nil && !errors.Is(inputErr, context.Canceled) && !isExpectedCloseError(inputErr) && ivyErr == nil {
-				ivyErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to stop terminal input: %v", inputErr), Err: inputErr}
+			if inputErr != nil && !errors.Is(inputErr, context.Canceled) && !isExpectedCloseError(inputErr) && romeErr == nil {
+				romeErr = &RunError{Code: 1, Message: fmt.Sprintf("failed to stop terminal input: %v", inputErr), Err: inputErr}
 			}
 		case <-time.After(250 * time.Millisecond):
-			if ivyErr == nil {
-				ivyErr = &RunError{Code: 1, Message: "failed to stop terminal input"}
+			if romeErr == nil {
+				romeErr = &RunError{Code: 1, Message: "failed to stop terminal input"}
 			}
 		}
 	}
 
 	result, sessionErr := managed.Wait()
-	if ivyErr != nil {
-		return Result{}, ivyErr
+	if romeErr != nil {
+		return Result{}, romeErr
 	}
 	if sessionErr != nil {
 		return Result{}, sessionErr

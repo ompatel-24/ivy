@@ -19,12 +19,12 @@ been performed.
 
 | Program | Status | Notes |
 | --- | --- | --- |
-| `ivy bash` | Verified | macOS arm64, 2026-08-19; standalone Milestone 6 binary with embedded browser client |
-| `ivy python` | Unavailable | No `python` or `python3` in the current PATH |
-| `ivy vim` | Unavailable | Not installed in the current PATH |
-| `ivy top` | Unavailable | Not installed in the current PATH |
-| `ivy claude` | Unavailable | Not installed in the current PATH |
-| `ivy codex` | Verified | macOS arm64, 2026-08-19; full-screen UI launched through the standalone binary |
+| `rome bash` | Pending | Re-run manually with the renamed standalone binary |
+| `rome python` | Unavailable | No `python` or `python3` in the current PATH |
+| `rome vim` | Unavailable | Not installed in the current PATH |
+| `rome top` | Unavailable | Not installed in the current PATH |
+| `rome claude` | Unavailable | Not installed in the current PATH |
+| `rome codex` | Pending | Re-run manually with the renamed standalone binary |
 
 ## Session checks
 
@@ -42,7 +42,7 @@ tests:
 
 These behaviors are covered by race-enabled HTTP/WebSocket integration tests:
 
-- [x] Networking remains disabled and quiet without `IVY_LISTEN`
+- [x] Networking remains disabled and quiet without `ROME_LISTEN`
 - [x] Unsafe wildcard listeners fail before the child launches
 - [x] Health exposes no Session data
 - [x] Metadata and WebSockets reject missing or invalid tokens
@@ -60,19 +60,19 @@ These behaviors are covered by race-enabled HTTP/WebSocket integration tests:
 - [x] QR generation failure stops the child and restores the terminal lifecycle
 - [x] Non-interactive, dumb, and narrow terminals retain the URL fallback
 - [x] Interactive terminal renders one compact ANSI QR and one manual URL
-- [x] The mobile client is served when only the Ivy executable is present
+- [x] The mobile client is served when only the Rome executable is present
 - [x] Changing the working directory does not affect embedded asset loading
-- [x] An invalid `IVY_WEB_DIR` override fails before child launch
+- [x] An invalid `ROME_WEB_DIR` override fails before child launch
 - [x] The generated-asset drift check matches a fresh Vite production build
 
 Manual loopback smoke test:
 
 ```bash
-IVY_LISTEN=127.0.0.1:7654 ./dist/ivy bash
+ROME_LISTEN=127.0.0.1:7654 ./dist/rome bash
 curl http://127.0.0.1:7654/health
 ```
 
-For the Milestone 6 distribution check, copy only `dist/ivy` into an empty
+For the Milestone 6 distribution check, copy only `dist/rome` into an empty
 temporary directory and repeat the loopback/browser test. No `web` directory
 should be present beside the executable.
 
@@ -82,7 +82,7 @@ reports or committed files.
 
 ## Mobile browser checks
 
-Run Ivy on a concrete LAN address, manually open the printed URL, and record the
+Run Rome on a concrete LAN address, manually open the printed URL, and record the
 browser/device below. Never paste the token into this document.
 
 Browser automation against the built binary:
@@ -121,22 +121,22 @@ Physical-device checks:
 The following are enforced by CI through `make release-snapshot`:
 
 - [x] Exactly four Darwin/Linux amd64/arm64 archives are produced
-- [x] Every archive contains only `ivy`, `README.md`, and `LICENSE`
+- [x] Every archive contains only `rome`, `README.md`, and `LICENSE`
 - [x] The checksum manifest covers exactly those four archives
 - [x] Every SHA-256 checksum verifies
 - [x] The native archive executes and reports a non-`dev` snapshot version
-- [x] The generated formula references every target and tests `ivy version`
+- [x] The generated formula references every target and tests `rome version`
 - [x] Release configuration passes GoReleaser v2.17.1 validation
 
-Complete these checks after publishing `v0.1.0`:
+Complete these checks after publishing `v0.2.0`:
 
 - [ ] Download all four archives and the checksum manifest from GitHub
 - [ ] Verify every checksum from a clean directory
 - [ ] Verify GitHub provenance for every archive and the checksum manifest
 - [ ] Extract and run the macOS arm64 archive
-- [ ] Install with `brew install ompatel-24/tap/ivy`
-- [ ] Confirm `ivy version` reports `ivy 0.1.0`
-- [ ] Run `brew test ivy`, then uninstall it
+- [ ] Install with `brew install ompatel-24/tap/rome`
+- [ ] Confirm `rome version` reports `rome 0.2.0`
+- [ ] Run `brew test rome`, then uninstall it
 - [ ] Record Linux and macOS amd64/arm64 execution where hardware is available
 
 See [releasing.md](releasing.md) for the required secret, tag procedure, and

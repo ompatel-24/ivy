@@ -23,7 +23,7 @@ import (
 )
 
 func TestPTYHelperProcess(t *testing.T) {
-	mode := os.Getenv("IVY_TEST_HELPER")
+	mode := os.Getenv("ROME_TEST_HELPER")
 	if mode == "" {
 		return
 	}
@@ -52,7 +52,7 @@ func TestPTYHelperProcess(t *testing.T) {
 			fmt.Fprintf(os.Stderr, "get working directory: %v\n", err)
 			os.Exit(96)
 		}
-		fmt.Fprintf(os.Stdout, "ARGV0:%s\nCWD:%s\nENV:%s\n", os.Args[0], cwd, os.Getenv("IVY_TEST_VALUE"))
+		fmt.Fprintf(os.Stdout, "ARGV0:%s\nCWD:%s\nENV:%s\n", os.Args[0], cwd, os.Getenv("ROME_TEST_VALUE"))
 
 	case "eof":
 		data := make([]byte, 1)
@@ -102,7 +102,7 @@ func TestPTYHelperProcess(t *testing.T) {
 }
 
 func TestRunnerPTYInputOutputAndExit(t *testing.T) {
-	stdin := pipeInput(t, "hello ivy\n")
+	stdin := pipeInput(t, "hello rome\n")
 	var output lockedBuffer
 	runner := Runner{Stdin: stdin, Stdout: &output, Stderr: io.Discard}
 
@@ -116,7 +116,7 @@ func TestRunnerPTYInputOutputAndExit(t *testing.T) {
 	if !strings.Contains(output.String(), "\x1b[31mREADY\x1b[0m") {
 		t.Fatalf("PTY output did not preserve ANSI bytes: %q", output.String())
 	}
-	if !strings.Contains(output.String(), "ECHO:hello ivy") {
+	if !strings.Contains(output.String(), "ECHO:hello rome") {
 		t.Fatalf("child did not receive PTY input: %q", output.String())
 	}
 }
@@ -176,7 +176,7 @@ func TestRunnerPreservesArgvEnvironmentAndDirectory(t *testing.T) {
 	if err := os.Chdir(temporaryDirectory); err != nil {
 		t.Fatalf("os.Chdir(%q): %v", temporaryDirectory, err)
 	}
-	t.Setenv("IVY_TEST_VALUE", "preserved")
+	t.Setenv("ROME_TEST_VALUE", "preserved")
 	argv := helperArgv(t, "environment")
 
 	var output lockedBuffer
@@ -373,7 +373,7 @@ func printSize(prefix string) {
 
 func helperArgv(t *testing.T, mode string) []string {
 	t.Helper()
-	t.Setenv("IVY_TEST_HELPER", mode)
+	t.Setenv("ROME_TEST_HELPER", mode)
 	return []string{os.Args[0], "-test.run=^TestPTYHelperProcess$"}
 }
 

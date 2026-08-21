@@ -90,9 +90,9 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            dist/ivy_*_darwin_*.tar.gz
-            dist/ivy_*_linux_*.tar.gz
-            dist/ivy_*_checksums.txt
+            dist/rome_*_darwin_*.tar.gz
+            dist/rome_*_linux_*.tar.gz
+            dist/rome_*_checksums.txt
 
       - name: Publish verified GitHub release
         env:

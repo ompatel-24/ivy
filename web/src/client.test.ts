@@ -12,7 +12,7 @@ const metadata = {
 
 class FakeWebSocket extends EventTarget {
   static readonly OPEN = 1;
-  readonly protocol = "ivy.v1";
+  readonly protocol = "rome.v1";
   readyState = 0;
   binaryType: BinaryType = "blob";
   readonly sent: Array<string | ArrayBufferLike | Blob | ArrayBufferView> = [];
@@ -86,7 +86,7 @@ describe("SessionClient", () => {
     expect(request).toHaveBeenCalledWith(`/api/v1/sessions/${sessionID}`, expect.objectContaining({ cache: "no-store" }));
     expect(createWebSocket).toHaveBeenCalledWith(
       `ws://${window.location.host}/api/v1/sessions/${sessionID}/ws`,
-      ["ivy.v1", `ivy.auth.${token}`],
+      ["rome.v1", `rome.auth.${token}`],
     );
 
     socket.open();

@@ -1,9 +1,9 @@
-BINARY := dist/ivy
+BINARY := dist/rome
 GO ?= go
 GORELEASER ?= goreleaser
 NPM ?= npm
 VERSION ?= dev
-LDFLAGS := -X github.com/ompatel-24/ivy/internal/version.Value=$(VERSION)
+LDFLAGS := -X github.com/ompatel-24/rome/internal/version.Value=$(VERSION)
 WEB_DIR := web
 EMBEDDED_WEB := internal/webassets/dist
 
@@ -12,7 +12,7 @@ EMBEDDED_WEB := internal/webassets/dist
 build: web
 	rm -rf dist/web
 	mkdir -p dist
-	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/ivy
+	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/rome
 
 test: web-check
 	$(NPM) --prefix $(WEB_DIR) test
@@ -36,10 +36,10 @@ web:
 
 web-check:
 	$(NPM) --prefix $(WEB_DIR) ci
-	@ivy_web_check_dir="$$(mktemp -d)"; \
-	trap 'rm -rf "$$ivy_web_check_dir"' EXIT; \
-	(cd $(WEB_DIR) && $(NPM) exec -- vite build --outDir "$$ivy_web_check_dir" >/dev/null); \
-	diff -qr $(EMBEDDED_WEB) "$$ivy_web_check_dir"
+	@rome_web_check_dir="$$(mktemp -d)"; \
+	trap 'rm -rf "$$rome_web_check_dir"' EXIT; \
+	(cd $(WEB_DIR) && $(NPM) exec -- vite build --outDir "$$rome_web_check_dir" >/dev/null); \
+	diff -qr $(EMBEDDED_WEB) "$$rome_web_check_dir"
 
 dev: web
-	IVY_LISTEN=$(IVY_LISTEN) IVY_WEB_DIR=$(abspath $(EMBEDDED_WEB)) $(GO) run ./cmd/ivy $(ARGS)
+	ROME_LISTEN=$(ROME_LISTEN) ROME_WEB_DIR=$(abspath $(EMBEDDED_WEB)) $(GO) run ./cmd/rome $(ARGS)

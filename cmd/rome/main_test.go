@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ompatel-24/ivy/internal/version"
+	"github.com/ompatel-24/rome/internal/version"
 )
 
 func TestRunCLIHelp(t *testing.T) {
@@ -18,8 +18,15 @@ func TestRunCLIHelp(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("runCLI() code = %d, want 0; stderr=%q", code, stderr.String())
 	}
-	if !strings.Contains(stdout.String(), "ivy <command> [args...]") {
+	if !strings.Contains(stdout.String(), "rome <command> [args...]") {
 		t.Fatalf("help output missing usage: %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "ROME_LISTEN=<host:port>") ||
+		!strings.Contains(stdout.String(), "ROME_WEB_DIR=<path>") {
+		t.Fatalf("help output missing Rome environment variables: %q", stdout.String())
+	}
+	if strings.Contains(stdout.String(), "IVY_") || strings.Contains(stdout.String(), "ivy ") {
+		t.Fatalf("help output contains stale branding: %q", stdout.String())
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("help stderr = %q, want empty", stderr.String())
@@ -34,7 +41,7 @@ func TestRunCLIMissingCommand(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("runCLI() code = %d, want 2", code)
 	}
-	if !strings.Contains(stderr.String(), "ivy: missing command") {
+	if !strings.Contains(stderr.String(), "rome: missing command") {
 		t.Fatalf("stderr = %q, want missing-command error", stderr.String())
 	}
 }
@@ -50,31 +57,31 @@ func TestRunCLIVersion(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("runCLI() code = %d, want 0; stderr=%q", code, stderr.String())
 	}
-	if stdout.String() != "ivy test-version\n" {
-		t.Fatalf("version output = %q, want %q", stdout.String(), "ivy test-version\\n")
+	if stdout.String() != "rome test-version\n" {
+		t.Fatalf("version output = %q, want %q", stdout.String(), "rome test-version\\n")
 	}
 }
 
 func TestRunCLICommandNotFound(t *testing.T) {
-	t.Setenv("IVY_LISTEN", "")
+	t.Setenv("ROME_LISTEN", "")
 	stdin := openDevNull(t)
 	var stdout, stderr bytes.Buffer
 
-	code := runCLI(context.Background(), []string{"ivy-test-command-that-does-not-exist"}, stdin, &stdout, &stderr)
+	code := runCLI(context.Background(), []string{"rome-test-command-that-does-not-exist"}, stdin, &stdout, &stderr)
 	if code != 127 {
 		t.Fatalf("runCLI() code = %d, want 127", code)
 	}
-	if !strings.Contains(stderr.String(), "ivy: command not found: ivy-test-command-that-does-not-exist") {
+	if !strings.Contains(stderr.String(), "rome: command not found: rome-test-command-that-does-not-exist") {
 		t.Fatalf("stderr = %q, want clean not-found error", stderr.String())
 	}
 }
 
 func TestRunCLIRejectsUnsafeListenAddressBeforeLaunchingCommand(t *testing.T) {
-	t.Setenv("IVY_LISTEN", "0.0.0.0:7654")
+	t.Setenv("ROME_LISTEN", "0.0.0.0:7654")
 	stdin := openDevNull(t)
 	var stdout, stderr bytes.Buffer
 
-	code := runCLI(context.Background(), []string{"ivy-command-that-must-not-launch"}, stdin, &stdout, &stderr)
+	code := runCLI(context.Background(), []string{"rome-command-that-must-not-launch"}, stdin, &stdout, &stderr)
 	if code != 1 {
 		t.Fatalf("runCLI() code = %d, want 1; stderr=%q", code, stderr.String())
 	}

@@ -5,6 +5,15 @@ import (
 	"testing"
 )
 
+func TestRomeProtocolIdentifiers(t *testing.T) {
+	if Subprotocol != "rome.v1" {
+		t.Fatalf("Subprotocol = %q, want %q", Subprotocol, "rome.v1")
+	}
+	if AuthPrefix != "rome.auth." {
+		t.Fatalf("AuthPrefix = %q, want %q", AuthPrefix, "rome.auth.")
+	}
+}
+
 func TestDecodeResize(t *testing.T) {
 	tests := []struct {
 		name    string
